@@ -1,0 +1,41 @@
+extends ./layout.jade
+block content
+  script.
+    function submit(){
+      $.post('/api/user/register', $('#register-form').serialize()).done(function(data){
+        console.log(data);
+        window.location.replace("/");
+      }).error(function(data){
+        alert('ERROR!',data)
+      })
+    }
+  div.container
+    div.content
+      h1 Register
+      p Register for the smart fuse project:
+      form(id='register-form')
+        br
+        div.row
+          div.col-lg-12
+            label Name:
+            input(type='text',placeholder='Your Name',class='form-control',name='name')
+        br
+        div.row
+          div.col-lg-12
+            label Email:
+            input(type='text',placeholder='Email',class='form-control',name='email')
+        br
+        div.row
+          div.col-lg-12
+            label Password:
+            input(type='text',placeholder='Password',class='form-control',name='password')
+        br
+        div.row
+          div.col-lg-12
+            label Confirm Password:
+            input(type='text',placeholder='Confirm Password',class='form-control',name='confpassword')
+        br
+        div.row
+          div.col-lg-12
+            button(onClick = 'submit()',class='btn btn-default') Submit
+  div.footer

@@ -1,0 +1,103 @@
+Server listening at http://0.0.0.0:8000
+index session  undefined
+get:  null
+test@test.com
+test
+login:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }  type:  object
+login result  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+test@test.com
+test
+login:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }  type:  object
+login result  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+test@test.com
+test
+login:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }  type:  object
+login result  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+index session  undefined
+get:  null
+test@test.com
+test
+login:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }  type:  object
+login result  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+index session  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+get:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }
+test@test.com
+test
+login:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }  type:  object
+login result  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+index session  undefined
+get:  null
+index session  undefined
+get:  null
+test
+test
+login:  null  type:  object
+login result  -1
+test
+test
+login:  null  type:  object
+login result  -1
+test@test.com
+test
+login:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }  type:  object
+login result  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+index session  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+get:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }
+test@test.com
+test
+login:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }  type:  object
+login result  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2
+test@test.com
+test
+login:  { id: '3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2',
+  email: 'test@test.com',
+  name: 'test',
+  password: 'test',
+  _id: 549b6308918efbc649f88634,
+  __v: 0 }  type:  object
+login result  3a28e870-8bd2-11e4-b4b2-55ea3c35d9e2

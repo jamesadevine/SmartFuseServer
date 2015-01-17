@@ -1,0 +1,44 @@
+extends ./layout.jade
+block content
+  div.container
+    div.content
+      if user == null
+        h1 Welcome
+        p Welcome to the Smart Fuse project. 
+        p Please <a href="/login">login</a> to see the smart fuse project API Details.
+      else
+        h1 Welcome #{user.name}
+        p Here are the api details:
+        br
+        h1 User API's 
+          each apiUser in userContent 
+            h2 #{apiUser.url}
+            h3 Type:
+            p #{apiUser.type}
+            h3 Description:
+            p #{apiUser.description}
+            h3 Parameters:
+            each val,key in apiUser.parameters 
+              p <b>#{key}</b>: #{val}
+            h3 Expected Response:
+              pre.prettyprint.linenums !{ JSON.stringify(apiUser.expected.content)}
+            h3 Error Response:
+              pre.prettyprint.linenums !{JSON.stringify(apiUser.error.content)}
+            br
+        h1 Fuse API's 
+          each apiFuse in fuseContent 
+            h2 #{apiFuse.url}
+            h3 Type:
+            p #{apiFuse.type}
+            h3 Description:
+            p #{apiFuse.description}
+            h3 Parameters:
+            each val,key in apiFuse.parameters 
+              p <b>#{key}</b>: #{val}
+            h3 Expected Response:
+              pre.prettyprint.linenums !{JSON.stringify(apiFuse.expected.content)}
+            h3 Error Response:
+              pre.prettyprint.linenums !{JSON.stringify(apiFuse.error.content)}
+            br
+
+  div.footer
