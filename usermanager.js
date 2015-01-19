@@ -12,7 +12,7 @@ module.exports = {
       countryCode:String,
       houseSize:String
     });
-    this.User.remove().exec();
+    //this.User.remove().exec();
   },
   add:function(email,name,password,callback){
     var newUser = new this.User({id:this.uuid.v1(),email:email,name:name,password:password,countryCode:"uk",houseSize:"medium"});
@@ -25,8 +25,25 @@ module.exports = {
   remove:function(id,callback){
 
   },
-  update:function(id,email,name,password,callback){
-
+  update:function(id,name,email,countryCode,houseSize,callback){
+    this.User.findOne({id:id},function (err, user) {
+      if (err)
+        callback(-1);
+      if(user === null){
+        callback(-1);
+      }else{
+        user.name=name;
+        user.email=email;
+        user.countryCode=countryCode;
+        user.houseSize = houseSize;
+        user.save(function(err){
+          if (err)
+            callback(-1);
+          else
+            callback(true);
+        });
+      }
+    });
   },
   login:function(email,password,callback){
     this.User.findOne({email:email,password:password},function (err, user) {

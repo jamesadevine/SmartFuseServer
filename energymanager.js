@@ -1,5 +1,8 @@
 
 module.exports = {
+  init:function(){
+
+  },
   getEnergyStats:function(countryCode){
     var energyStats={
       uk:{
