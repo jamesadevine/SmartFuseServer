@@ -13,26 +13,32 @@ module.exports = {
     //this.Hub.remove().exec();
   },
   retrieve:function(macaddr,callback){
+    console.log(macaddr);
     var uuid = this.uuid;
-    var User = this.User;
+    var Hub = this.Hub;
     this.Hub.findOne({macaddr:macaddr},function (err, hub) {
       if (err){
         callback(-1);
         return;
       }
-      if(hub===null){
+      if(hub===null||typeof hub === 'undefined'){
         var newHub = new Hub({id:uuid.v1(),macaddr:macaddr});
         newHub.save(function (err, hub) {
           if (err){
             callback(-1,null);
             return;
           }
-          callback(true,hub);
+          callback(-1,hub);
           return;
         });
       }else{
-        callback(-1,null);
-        return;
+        if(hub.ownerid === undefined){
+          callback(-1,hub);
+          return;
+        }else{
+          callback(true,hub);
+          return;
+        }
       }
     });
     
@@ -50,7 +56,7 @@ module.exports = {
   linkHub:function(id,hubid,callback){
     var User = this.User;
     this.Hub.findOne({id:hubid},function (err, hub) {
-      if (err||hub===null){
+      if (err||!hub){
         callback(-1);
         return;
       }
@@ -73,7 +79,7 @@ module.exports = {
     });
   },
   getHubs:function(userid,callback){
-    this.User.find({ownerid:userid},function (err, hubs) {
+    this.Hub.find({ownerid:userid},function (err, hubs) {
       if (err){
         callback(-1);
         return;
