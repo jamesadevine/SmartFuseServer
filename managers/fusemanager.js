@@ -15,6 +15,7 @@ module.exports = {
       icon:String,
       description:String,
       ownerID:String,
+      hubID:String,
       data:[{ value: Number, date: String, time:String,samples:Number,sum:Number}],
       online:Boolean,
       lastUpdated:Date
@@ -25,8 +26,8 @@ module.exports = {
   },
 
   //DEPRECATED: Adds a fuse to the database
-  add:function(ownerid,fuseid,name,callback){
-    var newFuse = new this.Fuse({id:fuseid,name:name,ownerID:ownerid,data:[],online:true,lastUpdated:new Date()});
+  add:function(hubid,ownerid,fuseid,name,callback){
+    var newFuse = new this.Fuse({id:fuseid,hubID:hubid,name:name,ownerID:ownerid,data:[],online:true,lastUpdated:new Date()});
     this.Fuse.findOne({ownerID:ownerid,id:fuseid},function (err, fuse) {
       if (err){
         callback(-1);
@@ -46,8 +47,8 @@ module.exports = {
     
   },
   //removes a fuse from the database
-  remove:function (ownerid,fuseid,callback){
-    this.Fuse.remove({ownerID:ownerid,id:fuseid},function (err) {
+  remove:function (ownerid,fuseid,hubid,callback){
+    this.Fuse.remove({ownerID:ownerid,id:fuseid,hubID:hubid},function (err) {
       if (err)
         callback(false);
       else
@@ -56,7 +57,7 @@ module.exports = {
   },
   //creates a Fuse if no record is found,
   //adds data to a Fuse if a record is found!
-  addData:function (ownerid,fuseid,value,callback){
+  addData:function (hubid,ownerid,fuseid,value,callback){
     var moment = this.moment();
 
     var timestamp = moment.format();
@@ -67,7 +68,7 @@ module.exports = {
     var nearestTen = moment.add(remainder,"minutes").format("HH:mm");
     var Fuse = this.Fuse;
     
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid},function (err,fuse) {
+    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid},function (err,fuse) {
       if (err){
         console.log(err);
         callback(-1,null);
@@ -83,6 +84,8 @@ module.exports = {
             icon:'img/appliances/help.png',
             online:true,
             ownerID:ownerid,
+            fuseID:fuseid,
+            hubID:hubid,
             lastUpdated:timestamp,
             data:[{value:value,date:dateString,time:nearestTen,samples:1,sum:value}]
           });
@@ -133,6 +136,9 @@ module.exports = {
   },
   //summarises the average for each fuse over a day
   getSummaryData:function(user,ownerid,date,callback){
+
+    //the maximum number of fuses returned by the summary
+    var MAX = 4;
 
     //create a moment object for the target date
     var targetDate = this.moment(date,"DD-MM-YYYY");
@@ -200,6 +206,9 @@ module.exports = {
 
           //calculate the daily price for the current fuse
           tempDatapoint2.push((dailyPrice*kwatts).toFixed(2));
+
+          if(i==MAX)
+            break;
         }
 
         //wrap the generated data
@@ -219,13 +228,13 @@ module.exports = {
     });
   },
   //returns the average energy consumption for the past seven days for the selected fuse.
-  getSevenDaySummary:function(ownerid,fuseid,callback){
+  getSevenDaySummary:function(ownerid,fuseid,hubid,callback){
 
     //get a local reference to the dateGenerator function 
     var dateGenerator = this.dateGenerator;
     
     //find the fuse
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid},function (err,fuse) {
+    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid},function (err,fuse) {
       if (err){
         console.log(err);
         callback(-1);
@@ -298,9 +307,9 @@ module.exports = {
 
   },
   //get a particular fuse
-  getFuse:function (ownerid,fuseid,callback){
+  getFuse:function (ownerid,fuseid,hubid,callback){
     //find the fuse!
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid},function (err, fuse) {
+    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid},function (err, fuse) {
 
       //return error if we can't find the fuse
       //otherwise return the fuse 
@@ -312,10 +321,10 @@ module.exports = {
     });
   },
   //saves a base64 image to the server in png format
-  uploadImage:function(ownerid,fuseid,b64string,url,callback){
+  uploadImage:function(ownerid,fuseid,hubid,b64string,url,callback){
 
     //create relevant variables
-    var directory = "/images/"+ownerid+"/";
+    var directory = "/images/"+ownerid+"/"+hubid+"/";
     var filename = fuseid+".png";
     var location = url+directory+filename;
 
@@ -323,7 +332,7 @@ module.exports = {
     var fs = this.fs;
 
     //find the selected fuse
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid}, function(err,fuse){
+    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid}, function(err,fuse){
       //check for errors
       if (err||fuse===null){
           callback(-1);
@@ -375,8 +384,8 @@ module.exports = {
     return dateArray;
   },
   //edits a fuse based on the data provided
-  editFuse:function(ownerid,fuseid,fuseName,description,callback){
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid}, function(err,fuse){
+  editFuse:function(ownerid,fuseid,hubid,fuseName,description,callback){
+    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid}, function(err,fuse){
       
       if (err||fuse===null){
           callback(-1);

@@ -30,7 +30,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
 
   app.post('/api/fuse/upload', function (req, res) {
 
-    var required = ["userID","fuseID","image"];
+    var required = ["userID","fuseID","hubID","image"];
     var allParams = commonFunctions.checkParams(req.body,required);
 
     if(!allParams){
@@ -50,7 +50,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
       else
         res.status(400).json({error:"Image upload failed"});
     };
-    fuseManager.uploadImage(req.body.userID,req.body.fuseID,base64Data,fullUrl,callback);
+    fuseManager.uploadImage(req.body.userID,req.body.fuseID,req.body.hubID,base64Data,fullUrl,callback);
     
   }),
 
@@ -60,7 +60,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
 
   app.put('/api/fuse/', function (req, res) {
 
-    var required = ["userID","fuseID","fuseName","fuseDescription"];
+    var required = ["userID","fuseID","hubID","fuseName","fuseDescription"];
     var allParams = commonFunctions.checkParams(req.body,required);
 
     if(!allParams){
@@ -77,7 +77,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
         res.status(403).json({error:"Fuse couldn't be edited"});
     };
 
-    fuseManager.editFuse(req.body.userID,req.body.fuseID,req.body.fuseName,req.body.fuseDescription,callback);
+    fuseManager.editFuse(req.body.userID,req.body.fuseID,req.body.hubID,req.body.fuseName,req.body.fuseDescription,callback);
     
   }),
 
@@ -86,7 +86,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
   */
 
   app.post('/api/fuse/', function (req, res) {
-    var required = ["userID","fuseID","fuseVal"];
+    var required = ["userID","fuseID","fuseVal","hubID"];
     var allParams = commonFunctions.checkParams(req.body,required);
 
     if(!allParams){
@@ -100,11 +100,11 @@ module.exports = function(app,commonFunctions,fuseManager,io){
       if(result===-1){
         res.status(404).json({error:"Fuse not found"});
       }else{
-        io.sockets.in(req.body.userID).emit("dataAdded",{fuseID:req.body.fuseID,value:data});//
+        io.sockets.in(req.body.userID).emit("dataAdded",{fuseID:req.body.fuseID,hubID:req.body.hubID,value:data});//
         res.status(200).json({success:"Fuse data added"});
       }
     };
-    fuseManager.addData(req.body.userID,req.body.fuseID,req.body.fuseVal,callback);
+    fuseManager.addData(req.body.hubID,req.body.userID,req.body.fuseID,req.body.fuseVal,callback);
     
   }),
 
@@ -113,7 +113,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
   */
 
   app.delete('/api/fuse/', function (req, res) {
-    var required = ["userID","fuseID"];
+    var required = ["userID","fuseID","hubID"];
     var allParams = commonFunctions.checkParams(req.body,required);
 
     if(!allParams){
@@ -129,7 +129,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
       else
         res.status(403).json({error:"Fuse couldn't be removed"});
     };
-    fuseManager.remove(req.body.userID,req.body.fuseID,callback);
+    fuseManager.remove(req.body.userID,req.body.fuseID,req.body.hubID,callback);
     
   }),
 
@@ -139,7 +139,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
 
   app.get('/api/fuse', function (req, res) {
 
-    var required = ["userID","fuseID"];
+    var required = ["userID","fuseID","hubID"];
     var allParams = commonFunctions.checkParams(req.query,required);
 
     if(!allParams){
@@ -156,7 +156,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
         res.status(200).json({success:"Fuse retrieved",fuse:result});
       }
     };
-    fuseManager.getFuse(req.query.userID,req.query.fuseID,callback);
+    fuseManager.getFuse(req.query.userID,req.query.fuseID,req.query.hubID,callback);
   }),
 
   /*
@@ -164,7 +164,7 @@ module.exports = function(app,commonFunctions,fuseManager,io){
   */
 
   app.get('/api/fuse/summary', function (req, res) {
-    var required = ["userID","fuseID"];
+    var required = ["userID","fuseID","hubID"];
     var allParams = commonFunctions.checkParams(req.query,required);
 
     if(!allParams){
@@ -181,6 +181,6 @@ module.exports = function(app,commonFunctions,fuseManager,io){
         res.status(200).json({success:"Fuse summary retrieved",summary:result});
       }
     };
-    fuseManager.getSevenDaySummary(req.query.userID,req.query.fuseID,callback);
+    fuseManager.getSevenDaySummary(req.query.userID,req.query.fuseID,req.query.hubID,callback);
   });
 };

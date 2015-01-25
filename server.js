@@ -120,7 +120,7 @@ var commonFunctions ={
 
 require('./routes/user.js')(app,commonFunctions,userManager,fuseManager,energyManager);
 require('./routes/fuse.js')(app,commonFunctions,fuseManager,io);
-require('./routes/fuses.js')(app,commonFunctions,fuseManager,userManager);
+require('./routes/fuses.js')(app,commonFunctions,fuseManager,userManager,hubManager);
 require('./routes/hub.js')(app,commonFunctions,hubManager);
 require('./site.js')(app,userManager,projectName);
 

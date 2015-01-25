@@ -33,7 +33,7 @@ module.exports = function(app,commonFunctions,hubManager){
 
   app.delete('/api/hub', function (req, res) {
 
-    var required = ["hubID"];
+    var required = ["hubID","userID"];
     var allParams = commonFunctions.checkParams(req.body,required);
 
     if(!allParams){
@@ -51,7 +51,7 @@ module.exports = function(app,commonFunctions,hubManager){
       }
     };
 
-    hubManager.remove(req.body.hubID,callback);
+    hubManager.remove(req.body.hubID,req.body.userID,callback);
   }),
 
   /*
@@ -80,6 +80,34 @@ module.exports = function(app,commonFunctions,hubManager){
     };
 
     hubManager.retrieve(req.query.macaddr,callback);
+  }),
+
+  /*
+    --------------------HUB EDIT----------------------
+  */
+
+  app.put('/api/hub', function (req, res) {
+
+
+    var required = ["hubID","userID","name"];
+    var allParams = commonFunctions.checkParams(req.body,required);
+
+    if(!allParams){
+      res.status(400).json({error:"Missing a parameter"});
+      return;
+    }
+    
+    commonFunctions.logRequest("/api/hub",req.body);
+
+    var callback = function(result){
+      if(result===-1){
+        res.status(400).json({error:"Hub not updated!"});
+      }else{
+        res.status(200).json({success:"Hub updated!"});
+      }
+    };
+
+    hubManager.update(req.body.hubID,req.body.userID,req.body.name,callback);
   }),
 
   /*

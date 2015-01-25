@@ -43,14 +43,35 @@ module.exports = {
     });
     
   },
-  remove:function(id,callback){
-    this.Hub.remove({id:id},function (err) {
+  remove:function(id,ownerid,callback){
+    this.Hub.remove({id:id,ownerid:ownerid},function (err) {
       if (err){
         callback(false);
         return;
       }
       callback(true);
       return;
+    });
+  },
+  update:function(id,ownerid,name,callback){
+    this.Hub.findOne({id:id,ownerid:ownerid},function (err,hub) {
+      if (err){
+        callback(-1);
+        return;
+      }
+      if(hub === null){
+        callback(-1);
+      }else{
+        hub.name=name;
+        hub.save(function(err){
+          if (err){
+            callback(-1);
+            return;
+          }
+          callback(true);
+          return;
+        });
+      }
     });
   },
   linkHub:function(id,hubid,callback){

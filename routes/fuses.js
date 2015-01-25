@@ -1,4 +1,4 @@
-module.exports = function(app,commonFunctions,fuseManager,userManager){
+module.exports = function(app,commonFunctions,fuseManager,userManager,hubManager){
   /*
     --------------------Fuses FETCH----------------------
   */
@@ -12,12 +12,29 @@ module.exports = function(app,commonFunctions,fuseManager,userManager){
       return;
     }
 
-    commonFunctions.logRequest("/api/fuses",req.query);
 
-    var callback = function(result){
-      res.status(200).json({success:"Fuses retrieved",fuses:result});
+    commonFunctions.logRequest("/api/fuses",req.query);
+    var outerCallback = function(result,hubs){
+      var callback = function(fuses){
+
+        var returnObject = {};
+        console.log(hubs);
+        console.log(fuses);
+        for(var i=0;i<hubs.length;i++){
+          var hubsFuses = fuses.filter(function(el){
+            return el.hubID==hubs[i].id;
+          });
+          console.log('hubsfuses',hubsFuses,hubs[i].name);
+          returnObject[String(hubs[i].name)]=hubsFuses;
+        }
+
+        res.status(200).json({success:"Fuses retrieved",fuses:returnObject});
+      };
+
+      fuseManager.getFusesByOwner(req.query.userID,callback);
     };
-    fuseManager.getFusesByOwner(req.query.userID,callback);
+    hubManager.getHubs(req.query.userID,outerCallback);
+    
     
   });
 
