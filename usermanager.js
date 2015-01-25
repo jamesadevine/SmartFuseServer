@@ -10,25 +10,52 @@ module.exports = {
       name:String,
       password:String,
       countryCode:String,
-      houseSize:String
+      houseSize:String,
     });
     //this.User.remove().exec();
   },
   add:function(email,name,password,callback){
-    var newUser = new this.User({id:this.uuid.v1(),email:email,name:name,password:password,countryCode:"uk",houseSize:"medium"});
-    newUser.save(function (err, user) {
-      if (err)
+    var uuid = this.uuid;
+    var User = this.User;
+    this.User.findOne({email:email},function (err, user) {
+      if (err){
         callback(-1);
-      callback(user.id);
+        return;
+      }
+      if(user===null){
+        var newUser = new User({id:uuid.v1(),email:email,name:name,password:password,countryCode:"uk",houseSize:"medium",hubs:[]});
+        newUser.save(function (err, user) {
+          if (err){
+            callback(-1,null);
+            return;
+          }
+          user.password = undefined;
+          callback(true,user);
+          return;
+        });
+      }else{
+        callback(-1,null);
+        return;
+      }
     });
+    
   },
   remove:function(id,callback){
-
+    this.User.remove({id:id},function (err) {
+      if (err){
+        callback(false);
+        return;
+      }
+      callback(true);
+      return;
+    });
   },
   update:function(id,name,email,countryCode,houseSize,callback){
     this.User.findOne({id:id},function (err, user) {
-      if (err)
+      if (err){
         callback(-1);
+        return;
+      }
       if(user === null){
         callback(-1);
       }else{
@@ -37,33 +64,41 @@ module.exports = {
         user.countryCode=countryCode;
         user.houseSize = houseSize;
         user.save(function(err){
-          if (err)
+          if (err){
             callback(-1);
-          else
-            callback(true);
+            return;
+          }
+          callback(true);
+          return;
         });
       }
     });
   },
   login:function(email,password,callback){
     this.User.findOne({email:email,password:password},function (err, user) {
-      if (err)
+      if (err){
         callback(-1);
+        return;
+      }
       console.log("login: ",user," type: ",typeof user);
       if(user === null){
         callback(-1);
+        return;
       }else{
         user.password=undefined;
         callback(user);
+        return;
       }
     });
   },
   get:function(id,callback){
     this.User.findOne({id:id},function (err, user) {
-      if (err)
+      if (err){
         callback(-1);
-      console.log("get: ",user);
+        return;
+      }
       callback(user);
+      return;
     });
   }
 };

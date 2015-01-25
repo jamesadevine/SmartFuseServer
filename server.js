@@ -1,45 +1,57 @@
-var express = require('express');
-var app = express();
-var cookieParser = require('cookie-parser');
-var session = require('express-session');
 
-var uuid = require('node-uuid');
-var moment = require('moment');
+/* 
+-----------GENERAL IMPORTS-----------
+*/
+var express = require('express'); //express framework!
+var logger = require('morgan');
+var app = express();  //create the app object
+app.use(logger('dev'));
+var cookieParser = require('cookie-parser');  //used to 
+var session = require('express-session'); //used for managing sessions
+var uuid = require('node-uuid');  //used to generate UUIDs
+var moment = require('moment'); //clever date library
+var fs = require("fs"); //used to interact with the file system
 
-var fs = require("fs");
+var mongoose = require('mongoose'); //allows interation with MongoDB
 
-var mongoose = require('mongoose');
+//connect to MongoDB!
 mongoose.connect('mongodb://localhost/smartfuse');
-
 mongoose.connection.on('error', console.error.bind(console, 'connection error:'));
 
+//create instances of the various managers
 var userManager = require('./usermanager.js');
-
 var fuseManager = require('./fusemanager.js');
-
 var energyManager = require('./energymanager.js');
+var hubManager = require('./hubmanager.js');
 
+//instantiate managers...
 userManager.init(mongoose,uuid);
-
+hubManager.init(mongoose,uuid);
 fuseManager.init(mongoose,uuid,fs,moment);
-
 energyManager.init();
 
+//create the project name 
 var projectName = "Smart Fuse -";
 
+//set up the app!
 app.set('view engine', 'jade');
 
 app.use(cookieParser());
+
+//create the session generator
 app.use(session({secret: 'J@m3sD3V1n3',
                  saveUninitialized: true,
                  resave: true}));
 
+//create the body parser to automatically pass request parameters
 var bodyParser = require('body-parser');
+//set the limit to 50mb for image upload
 app.use( bodyParser.json({limit: '50mb'}));       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
   extended: true
 }));
 
+//set CORS
 var allowCrossDomain = function(req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
@@ -50,6 +62,7 @@ var allowCrossDomain = function(req, res, next) {
 
 app.use(allowCrossDomain);
 
+//set the public DIR
 app.use(express.static(__dirname + '/public'));
 
 
@@ -60,6 +73,8 @@ app.use(express.static(__dirname + '/public'));
 app.get('/', function (req, res) {
   console.log("index session ",req.session.userID);
   var callback = function(result){
+
+    //render the api details if the user is logged in!
     res.render('index',{
       header:projectName+' Home',
       user:result,
@@ -116,8 +131,8 @@ app.get('/', function (req, res) {
         }],
     fuseContent:[
         {
-          url:"/api/fuse/fuses",
-          type:"POST",
+          url:"/api/fuses",
+          type:"GET",
           description:"Gets the fuses based on a supplied user ID",
           parameters:{
                 userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
@@ -130,8 +145,8 @@ app.get('/', function (req, res) {
           }
         },
         {
-          url:"/api/fuse/fuses/summary",
-          type:"POST",
+          url:"/api/fuses/summary",
+          type:"GET",
           description:"Gets the users fuse summary for the date given",
           parameters:{
                 userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
@@ -142,20 +157,6 @@ app.get('/', function (req, res) {
           },
           error:{
             content:'None'
-          }
-        },
-        {
-          url:"/api/fuse",
-          type:"POST",
-          description:"Gets a singular fuse based on a user ID and a fuse ID",
-          parameters:{
-                userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-          },
-          expected:{
-            content:'{success: "Fuse retrieved",fuse: [fuse object]}'
-          },
-          error:{
-            content:'{error: "Fuse not found"}'
           }
         },
         {
@@ -175,22 +176,6 @@ app.get('/', function (req, res) {
           }
         },
         {
-          url:"/api/fuse/adddata",
-          type:"POST",
-          description:"If the fuse exists it adds an item to the data array - otherwise it creates it.\nManual creation can be manged by using the /api/fuse/add url\n Also notifys any live data listeners! COOL!",
-          parameters:{
-                userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-                fuseID:"The ID of the fuse to add.",
-                fuseVal:"The data to be added"
-          },
-          expected:{
-            content:'{success: "Fuse data added"}'
-          },
-          error:{
-            content:'{error: "Fuse not found"}'
-          }
-        },
-        {
           url:"/api/fuse/upload",
           type:"POST",
           description:"Uploads an image in base 64 format to the server.",
@@ -207,8 +192,38 @@ app.get('/', function (req, res) {
           }
         },
         {
-          url:"/api/fuse/edit",
+          url:"/api/fuse",
+          type:"GET",
+          description:"Gets a singular fuse based on a user ID and a fuse ID",
+          parameters:{
+                userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
+          },
+          expected:{
+            content:'{success: "Fuse retrieved",fuse: [fuse object]}'
+          },
+          error:{
+            content:'{error: "Fuse not found"}'
+          }
+        },
+        {
+          url:"/api/fuse/",
           type:"POST",
+          description:"If the fuse exists it adds an item to the data array - otherwise it creates it.\nManual creation can be manged by using the /api/fuse/add url\n Also notifys any live data listeners! COOL!",
+          parameters:{
+                userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
+                fuseID:"The ID of the fuse to add.",
+                fuseVal:"The data to be added"
+          },
+          expected:{
+            content:'{success: "Fuse data added"}'
+          },
+          error:{
+            content:'{error: "Fuse not found"}'
+          }
+        },
+        {
+          url:"/api/fuse/",
+          type:"PUT",
           description:"Uploads an image in base 64 format to the server.",
           parameters:{
                 userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
@@ -224,7 +239,7 @@ app.get('/', function (req, res) {
           }
         },
         {
-          url:"/api/fuse/remove",
+          url:"/api/fuse",
           type:"DELETE",
           description:"Removes a fuse from the Smart Fuse Project",
           parameters:{
@@ -253,7 +268,7 @@ var currentUser = userManager.get(req.session.userID,callback);
 app.post('/api/fuse/add', function (req, res) {
 
   var required = ["userID","fuseID","fuseName"];
-  var allParams = checkParams(req,required);
+  var allParams = checkParams(req.body,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
@@ -271,35 +286,11 @@ app.post('/api/fuse/add', function (req, res) {
   
 });
 
-app.post('/api/fuse/adddata', function (req, res) {
-  var required = ["userID","fuseID","fuseVal"];
-  var allParams = checkParams(req,required);
-
-  if(!allParams){
-    res.status(400).json({error:"Missing a parameter"});
-    return;
-  }
-
-  logRequest("/api/fuse/adddata",req.body);
-
-  var callback = function(result,data){
-    if(result===-1){
-      res.status(404).json({error:"Fuse not found"});
-    }else{
-      io.sockets.in(req.body.userID).emit("dataAdded",{fuseID:req.body.fuseID,value:data});//
-      res.status(200).json({success:"Fuse data added"});
-    }
-  };
-  fuseManager.addData(req.body.userID,req.body.fuseID,req.body.fuseVal,callback);
-  
-});
-
-
 
 app.post('/api/fuse/upload', function (req, res) {
 
   var required = ["userID","fuseID","image"];
-  var allParams = checkParams(req,required);
+  var allParams = checkParams(req.body,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
@@ -322,18 +313,17 @@ app.post('/api/fuse/upload', function (req, res) {
   
 });
 
-app.post('/api/fuse/edit', function (req, res) {
-  console.log(req.body);
+app.put('/api/fuse/', function (req, res) {
 
   var required = ["userID","fuseID","fuseName","fuseDescription"];
-  var allParams = checkParams(req,required);
+  var allParams = checkParams(req.body,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
     return;
   }
 
-  logRequest("/api/fuse/edit",req.body);
+  logRequest("/api/fuse",req.body);
 
   var callback = function(result){
     if(result)
@@ -346,16 +336,39 @@ app.post('/api/fuse/edit', function (req, res) {
   
 });
 
-app.post('/api/fuse/remove', function (req, res) {
-  var required = ["userID","fuseID"];
-  var allParams = checkParams(req,required);
+app.post('/api/fuse/', function (req, res) {
+  var required = ["userID","fuseID","fuseVal"];
+  var allParams = checkParams(req.body,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
     return;
   }
 
-  logRequest("/api/fuse/remove",req.body);
+  logRequest("/api/fuse/adddata",req.body);
+
+  var callback = function(result,data){
+    if(result===-1){
+      res.status(404).json({error:"Fuse not found"});
+    }else{
+      io.sockets.in(req.body.userID).emit("dataAdded",{fuseID:req.body.fuseID,value:data});//
+      res.status(200).json({success:"Fuse data added"});
+    }
+  };
+  fuseManager.addData(req.body.userID,req.body.fuseID,req.body.fuseVal,callback);
+  
+});
+
+app.delete('/api/fuse/', function (req, res) {
+  var required = ["userID","fuseID"];
+  var allParams = checkParams(req.body,required);
+
+  if(!allParams){
+    res.status(400).json({error:"Missing a parameter"});
+    return;
+  }
+
+  logRequest("/api/fuse",req.body);
 
   var callback = function(result){
     if(result)
@@ -367,52 +380,17 @@ app.post('/api/fuse/remove', function (req, res) {
   
 });
 
-app.post('/api/fuse/fuses', function (req, res) {
+app.get('/api/fuse', function (req, res) {
 
-  var required = ["userID"];
-  var allParams = checkParams(req,required);
-  
-  logRequest("/api/fuse/fuses",req.body);
-
-  if(!allParams){
-    res.status(400).json({error:"Missing a parameter"});
-    return;
-  }
-  var callback = function(result){
-    res.status(200).json({success:"Fuses retrieved",fuses:result});
-  };
-  fuseManager.getFusesByOwner(req.body.userID,callback);
-  
-});
-app.post('/api/fuse/fuses/summary', function (req, res) {
-  console.log("FUSES");
-  var required = ["userID","date"];
-  var allParams = checkParams(req,required);
-  if(!allParams){
-    res.status(400).json({error:"Missing a parameter"});
-    return;
-  }
-  logRequest("/api/fuse/summary",req.body);
-  var callback = function(result){
-    res.status(200).json({success:"Fuse summary retrieved",summary:result});
-  };
-  var callback2 = function(user){
-    fuseManager.getSummaryData(user,req.body.userID,req.body.date,callback);
-  };
-  userManager.get(req.body.userID,callback2);
-  
-});
-
-app.post('/api/fuse', function (req, res) {
   var required = ["userID","fuseID"];
-  var allParams = checkParams(req,required);
+  var allParams = checkParams(req.query,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
     return;
   }
 
-  logRequest("/api/fuse",req.body);
+  logRequest("/api/fuse",req.query);
 
   var callback = function(result){
     if(result === -1){
@@ -421,19 +399,19 @@ app.post('/api/fuse', function (req, res) {
       res.status(200).json({success:"Fuse retrieved",fuse:result});
     }
   };
-  fuseManager.getFuse(req.body.userID,req.body.fuseID,callback);
+  fuseManager.getFuse(req.query.userID,req.query.fuseID,callback);
 });
 
-app.post('/api/fuse/summary', function (req, res) {
+app.get('/api/fuse/summary', function (req, res) {
   var required = ["userID","fuseID"];
-  var allParams = checkParams(req,required);
+  var allParams = checkParams(req.query,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
     return;
   }
 
-  logRequest("/api/fuse/summary",req.body);
+  logRequest("/api/fuse/summary",req.query);
 
   var callback = function(result){
     if(result === -1){
@@ -442,9 +420,138 @@ app.post('/api/fuse/summary', function (req, res) {
       res.status(200).json({success:"Fuse summary retrieved",summary:result});
     }
   };
-  fuseManager.getSevenDaySummary(req.body.userID,req.body.fuseID,callback);
+  fuseManager.getSevenDaySummary(req.query.userID,req.query.fuseID,callback);
 });
 
+app.get('/api/fuses', function (req, res) {
+
+  var required = ["userID"];
+  var allParams = checkParams(req.query,required);
+  
+  logRequest("/api/fuses",req.query);
+
+  if(!allParams){
+    res.status(400).json({error:"Missing a parameter"});
+    return;
+  }
+  var callback = function(result){
+    res.status(200).json({success:"Fuses retrieved",fuses:result});
+  };
+  fuseManager.getFusesByOwner(req.query.userID,callback);
+  
+});
+app.get('/api/fuses/summary', function (req, res) {
+  var required = ["userID","date"];
+  var allParams = checkParams(req.query,required);
+  if(!allParams){
+    res.status(400).json({error:"Missing a parameter"});
+    return;
+  }
+  logRequest("/api/fuses/summary",req.query);
+  var callback = function(result){
+    res.status(200).json({success:"Fuse summary retrieved",summary:result});
+  };
+  var callback2 = function(user){
+    fuseManager.getSummaryData(user,req.query.userID,req.query.date,callback);
+  };
+  userManager.get(req.query.userID,callback2);
+  
+});
+
+
+app.post('/api/hub', function (req, res) {
+
+  var required = ["hubID","userID"];
+  var allParams = checkParams(req.body,required);
+
+  if(!allParams){
+    res.status(400).json({error:"Missing a parameter"});
+    return;
+  }
+  
+  logRequest("/api/hub",req.body);
+
+  var callback = function(result){
+    if(result===-1){
+      res.status(400).json({error:"Hub couldn't be added"});
+    }else{
+      res.status(200).json({success:"Hub added!"});
+    }
+  };
+
+  hubManager.linkHub(req.body.userID,req.body.hubID,callback);
+});
+
+app.delete('/api/hub', function (req, res) {
+
+  var required = ["hubID","userID"];
+  var allParams = checkParams(req.body,required);
+
+  if(!allParams){
+    res.status(400).json({error:"Missing a parameter"});
+    return;
+  }
+  
+  logRequest("/api/hub",req.body);
+
+  var callback = function(result){
+    if(result===-1){
+      res.status(400).json({error:"Hub couldn't be added"});
+    }else{
+      res.status(200).json({success:"Hub added!"});
+    }
+  };
+
+  hubManager.remove(req.body.userID,req.body.hubID,callback);
+});
+
+app.get('/api/hub', function (req, res) {
+
+
+  var required = ["macAddr"];
+  var allParams = checkParams(req.query,required);
+
+  if(!allParams){
+    res.status(400).json({error:"Missing a parameter"});
+    return;
+  }
+  
+  logRequest("/api/hub",req.query);
+
+  var callback = function(result){
+    if(result===-1){
+      res.status(400).json({error:"Hub couldn't be added"});
+    }else{
+      res.status(200).json({success:"Hub added!"});
+    }
+  };
+
+  hubManager.retrieve(req.query.macAddr,callback);
+});
+
+app.get('/api/hubs', function (req, res) {
+
+
+  var required = ["userID"];
+  var allParams = checkParams(req.query,required);
+
+  if(!allParams){
+    res.status(400).json({error:"Missing a parameter"});
+    return;
+  }
+  
+  logRequest("/api/hubs",req.query);
+
+  var callback = function(result,hubs){
+    if(result===-1){
+      res.status(400).json({error:"Hubs couldn't be retrieved"});
+    }else{
+      res.status(200).json({success:"Hubs retrieved",hubs:hubs});
+    }
+  };
+
+  getHubs.add(req.query.userID,callback);
+});
 
 /*
   --------------------LOGIN----------------------
@@ -456,8 +563,10 @@ app.get('/login', function (req, res) {
 
 app.post('/api/user/login', function (req, res) {
 
+  console.log(req.body);
+
   var required = ["email","password"];
-  var allParams = checkParams(req,required);
+  var allParams = checkParams(req.body,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
@@ -467,15 +576,11 @@ app.post('/api/user/login', function (req, res) {
   logRequest("/api/user/login",req.body);
 
   var callback = function(result){
-    console.log("login result ",result);
     if(result===-1){
-      console.log("error");
       res.status(403).json({error:"User credentials incorrect"});
     }else{
-      console.log("loggedin");
       result=result.toObject();
       req.session.userID = result.id;
-      console.log(energyManager.getEnergyStats(result.countryCode));
       result.energy = energyManager.getEnergyStats(result.countryCode);
       res.status(200).json({success:"User logged in!",user:result});
     }
@@ -484,17 +589,19 @@ app.post('/api/user/login', function (req, res) {
   userManager.login(req.body.email,req.body.password,callback);
 });
 
-app.post('/api/user/update', function (req, res) {
+
+
+app.put('/api/user/', function (req, res) {
 
   var required = ["id","name","email","countryCode","houseSize"];
-  var allParams = checkParams(req,required);
+  var allParams = checkParams(req.body,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
     return;
   }
   
-  logRequest("/api/user/update",req.body);
+  logRequest("/api/user/",req.body);
 
   var callback = function(result){
     if(result===-1){
@@ -507,6 +614,27 @@ app.post('/api/user/update', function (req, res) {
   userManager.update(req.body.id,req.body.name,req.body.email,req.body.countryCode,req.body.houseSize,callback);
 });
 
+app.delete('/api/user/', function (req, res) {
+  var required = ["userID","fuseID"];
+  var allParams = checkParams(req.body,required);
+
+  if(!allParams){
+    res.status(400).json({error:"Missing a parameter"});
+    return;
+  }
+
+  logRequest("/api/user",req.body);
+
+  var callback = function(result){
+    if(result)
+      res.status(200).json({success:"User removed"});
+    else
+      res.status(403).json({error:"User couldn't be removed"});
+  };
+  fuseManager.remove(req.body.userID,req.body.fuseID,callback);
+  
+});
+
 /*
   --------------------REGISTER----------------------
 */
@@ -516,8 +644,8 @@ app.get('/register', function (req, res) {
 });
 
 app.post('/api/user/register', function (req, res) {
-  var required = ["email","password","confpassword","name"];
-  var allParams = checkParams(req,required);
+  var required = ["email","password","name"];
+  var allParams = checkParams(req.body,required);
 
   if(!allParams){
     res.status(400).json({error:"Missing a parameter"});
@@ -526,12 +654,12 @@ app.post('/api/user/register', function (req, res) {
 
   logRequest("/api/user/register",req.body);
 
-  var callback = function(result){
-    if(!result){
-      res.status(403).json({error:"An error occurred"});
+  var callback = function(result,user){
+    if(result===-1){
+      res.status(400).json({error:"User already registered!"});
     }else{
-      req.session.userID = result;
-      res.status(200).json({success:"User registered!"});
+      req.session.userID = user.id;
+      res.status(200).json({success:"User registered!",user:user});
     }
   };
 
@@ -584,7 +712,7 @@ function logRequest(location,body){
 //returns true if all params are there
 function checkParams(request,required){
   for(var i =0;i<required.length;i++){
-    if(typeof request.body[required[i]] === 'undefined')
+    if(typeof request[required[i]] === 'undefined')
       return false;
   }
   return true;

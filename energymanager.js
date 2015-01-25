@@ -23,7 +23,7 @@ module.exports = {
       us:{
       }
     };
-
+    //returns the energy stats for the respective countries
     return energyStats[countryCode];
   }
 };
