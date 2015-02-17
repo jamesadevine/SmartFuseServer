@@ -13,6 +13,7 @@ module.exports = function(app,userManager,projectName){
         header:projectName+' Home',
         user:result,
         userContent:[{
+            id:"login",
             url:"/api/user/login",
             type:"POST",
             description:"Logs in a user and returns the userid for use with subsequent requests",
@@ -28,6 +29,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"register",
             url:"/api/user/register",
             type:"POST",
             description:"Registers a user with the Smart Fuse Project.",
@@ -46,6 +48,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"putuser",
             url:"/api/user",
             type:"PUT",
             description:"Updates the user object stored in MongoDB",
@@ -64,6 +67,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"deluser",
             url:"/api/user",
             type:"DELETE",
             description:"Deletes the user object stored in MongoDB",
@@ -78,6 +82,7 @@ module.exports = function(app,userManager,projectName){
             }
           }],
       hubContent:[{
+            id:"posthub",
             url:"/api/hub",
             type:"POST",
             description:"Links a user account with a hub",
@@ -93,6 +98,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"delhub",
             url:"/api/hub",
             type:"DELETE",
             description:"Removes a hub from the system",
@@ -108,6 +114,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"gethub",
             url:"/api/hub",
             type:"GET",
             description:"Retrieves a hub object using the mac address - used by the hub to fetch its' owner!\n Creates a hub object if this hub is new, otherwise retrieves the object",
@@ -122,6 +129,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"gethubs",
             url:"/api/hubs",
             type:"GET",
             description:"Retrieves a list of hubs owned by the user",
@@ -137,6 +145,7 @@ module.exports = function(app,userManager,projectName){
           }],
       fuseContent:[
           {
+            id:"getfuses",
             url:"/api/fuses",
             type:"GET",
             description:"Gets the fuses based on a supplied user ID",
@@ -151,6 +160,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"fusessummary",
             url:"/api/fuses/summary",
             type:"GET",
             description:"Gets the users fuse summary for the date given",
@@ -166,7 +176,8 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
-            url:"/api/fuse/add",
+            id:"addfuse",
+            url:"/api/fuse/add [DEPRECATED]",
             type:"POST",
             description:"Adds a fuse manually to Smart Fuse Project [DEPRECATED in favour of adddata]",
             parameters:{
@@ -182,6 +193,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"uploadfuse",
             url:"/api/fuse/upload",
             type:"POST",
             description:"Uploads an image in base 64 format to the server.",
@@ -198,6 +210,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"getfuse",
             url:"/api/fuse",
             type:"GET",
             description:"Gets a singular fuse based on a user ID and a fuse ID",
@@ -213,6 +226,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"postfuse",
             url:"/api/fuse/",
             type:"POST",
             description:"If the fuse exists it adds an item to the data array - otherwise it creates it.\nManual creation can be manged by using the /api/fuse/add url\n Also notifys any live data listeners! COOL!",
@@ -229,6 +243,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"putfuse",
             url:"/api/fuse/",
             type:"PUT",
             description:"Updates the details of fuse held on the server.",
@@ -246,6 +261,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"delfuse",
             url:"/api/fuse",
             type:"DELETE",
             description:"Removes a fuse from the Smart Fuse Project",
@@ -261,6 +277,7 @@ module.exports = function(app,userManager,projectName){
             }
           },
           {
+            id:"fusesummary",
             url:"/api/fuse/summary",
             type:"GET",
             description:"Fetches the seven day summary for the selected fuse",

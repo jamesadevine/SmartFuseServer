@@ -6,6 +6,12 @@
 		},
 		{
 			"path": "public"
+		},
+		{
+			"path": "managers"
+		},
+		{
+			"path": "routes"
 		}
 	]
 }

@@ -8,52 +8,79 @@ block content
         p Please <a href="/login">login</a> to see the smart fuse project API Details.
       else
         h1 Welcome #{user.name}
-        p Here are the api details:
-        br
-        h1 Hub API's 
-          each apiHub in hubContent 
-            h2 #{apiHub.url}
-            h3 Type:
-            p #{apiHub.type}
-            h3 Description:
-            p #{apiHub.description}
-            h3 Parameters:
-            each val,key in apiHub.parameters 
-              p <b>#{key}</b>: #{val}
-            h3 Expected Response:
-              pre.prettyprint.linenums !{JSON.stringify(apiHub.expected.content)}
-            h3 Error Response:
-              pre.prettyprint.linenums !{JSON.stringify(apiHub.error.content)}
-            br
-        h1 User API's 
-          each apiUser in userContent 
-            h2 #{apiUser.url}
-            h3 Type:
-            p #{apiUser.type}
-            h3 Description:
-            p #{apiUser.description}
-            h3 Parameters:
-            each val,key in apiUser.parameters 
-              p <b>#{key}</b>: #{val}
-            h3 Expected Response:
-              pre.prettyprint.linenums !{ JSON.stringify(apiUser.expected.content)}
-            h3 Error Response:
-              pre.prettyprint.linenums !{JSON.stringify(apiUser.error.content)}
-            br
-        h1 Fuse API's 
-          each apiFuse in fuseContent 
-            h2 #{apiFuse.url}
-            h3 Type:
-            p #{apiFuse.type}
-            h3 Description:
-            p #{apiFuse.description}
-            h3 Parameters:
-            each val,key in apiFuse.parameters 
-              p <b>#{key}</b>: #{val}
-            h3 Expected Response:
-              pre.prettyprint.linenums !{JSON.stringify(apiFuse.expected.content)}
-            h3 Error Response:
-              pre.prettyprint.linenums !{JSON.stringify(apiFuse.error.content)}
-            br
+        p Quick Navigation:
+
+        div(class='row')
+          div(class='col-md-12')
+            a(onClick='scrollTo("hub")' href='#') Hub APIs
+              each apiHub in hubContent
+                div(class='row')
+                  div(class='col-sm-11 col-sm-offset-1 ')
+                    a(onClick='scrollTo("#{apiHub.id}")' href='#') #{apiHub.url} #{apiHub.type}
+        div(class='row')
+          div(class='col-md-12')
+            a(onClick='scrollTo("user")' href='#') User APIs
+              each apiUser in userContent
+                div(class='row')
+                  div(class='col-sm-11 col-sm-offset-1 ')
+                    a(onClick='scrollTo("#{apiUser.id}")' href='#') #{apiUser.url} #{apiUser.type}
+        div(class='row')
+          div(class='col-md-12')
+            a(onClick='scrollTo("fuse")' href='#') Fuse APIs
+              each apiFuse in fuseContent 
+                div(class='row')
+                  div(class='col-sm-11 col-sm-offset-1 ')
+                    a(onClick='scrollTo("#{apiFuse.id}")' href='#') #{apiFuse.url} #{apiFuse.type}
+        div(class='row row-divider')
+          div(class='col-md-12')      
+            h1(id="hub") Hub API's 
+              each apiHub in hubContent 
+                h2(id='#{apiHub.id}') #{apiHub.url}
+                h3 Type:
+                p #{apiHub.type}
+                h3 Description:
+                p #{apiHub.description}
+                h3 Parameters:
+                each val,key in apiHub.parameters 
+                  p <b>#{key}</b>: #{val}
+                h3 Expected Response:
+                  pre.prettyprint.linenums !{JSON.stringify(apiHub.expected.content)}
+                h3 Error Response:
+                  pre.prettyprint.linenums !{JSON.stringify(apiHub.error.content)}
+                br
+        div(class='row row-divider')
+          div(class='col-md-12')  
+            h1(id="user") User API's 
+              each apiUser in userContent 
+                h2(id='#{apiUser.id}') #{apiUser.url}
+                h3 Type:
+                p #{apiUser.type}
+                h3 Description:
+                p #{apiUser.description}
+                h3 Parameters:
+                each val,key in apiUser.parameters 
+                  p <b>#{key}</b>: #{val}
+                h3 Expected Response:
+                  pre.prettyprint.linenums !{ JSON.stringify(apiUser.expected.content)}
+                h3 Error Response:
+                  pre.prettyprint.linenums !{JSON.stringify(apiUser.error.content)}
+                br
+        div(class='row row-divider')
+          div(class='col-md-12')
+            h1(id="fuse") Fuse API's 
+              each apiFuse in fuseContent 
+                h2(id='#{apiFuse.id}') #{apiFuse.url}
+                h3 Type:
+                p #{apiFuse.type}
+                h3 Description:
+                p #{apiFuse.description}
+                h3 Parameters:
+                each val,key in apiFuse.parameters 
+                  p <b>#{key}</b>: #{val}
+                h3 Expected Response:
+                  pre.prettyprint.linenums !{JSON.stringify(apiFuse.expected.content)}
+                h3 Error Response:
+                  pre.prettyprint.linenums !{JSON.stringify(apiFuse.error.content)}
+                br
 
   div.footer

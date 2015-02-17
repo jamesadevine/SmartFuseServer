@@ -3,6 +3,7 @@
 -----------GENERAL IMPORTS-----------
 */
 var express = require('express'); //express framework!
+var favicon = require('serve-favicon');
 var logger = require('morgan');
 var app = express();  //create the app object
 app.use(logger('dev'));
@@ -10,7 +11,8 @@ var cookieParser = require('cookie-parser');  //used to
 var session = require('express-session'); //used for managing sessions
 var uuid = require('node-uuid');  //used to generate UUIDs
 var moment = require('moment'); //clever date library
-var fs = require("fs"); //used to interact with the file system
+var fs = require('fs'); //used to interact with the file system
+var request = require('request');
 
 var mongoose = require('mongoose'); //allows interation with MongoDB
 
@@ -28,7 +30,7 @@ var hubManager = require('./managers/hubmanager.js');
 userManager.init(mongoose,uuid);
 hubManager.init(mongoose,uuid);
 fuseManager.init(mongoose,uuid,fs,moment);
-energyManager.init();
+energyManager.init(mongoose,request,moment);
 
 //create the project name 
 var projectName = "Smart Fuse -";
@@ -37,6 +39,9 @@ var projectName = "Smart Fuse -";
 app.set('view engine', 'jade');
 
 app.use(cookieParser());
+
+//set the favicon
+app.use(favicon(__dirname + '/public/favicon.ico'));
 
 //create the session generator
 app.use(session({secret: 'J@m3sD3V1n3',
@@ -122,6 +127,7 @@ require('./routes/user.js')(app,commonFunctions,userManager,fuseManager,energyMa
 require('./routes/fuse.js')(app,commonFunctions,fuseManager,io);
 require('./routes/fuses.js')(app,commonFunctions,fuseManager,userManager,hubManager);
 require('./routes/hub.js')(app,commonFunctions,hubManager);
+require('./routes/stats.js')(app,commonFunctions,energyManager);
 require('./site.js')(app,userManager,projectName);
 
 
