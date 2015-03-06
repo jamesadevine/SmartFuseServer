@@ -31,6 +31,13 @@ block content
                 div(class='row')
                   div(class='col-sm-11 col-sm-offset-1 ')
                     a(onClick='scrollTo("#{apiFuse.id}")' href='#') #{apiFuse.url} #{apiFuse.type}
+        div(class='row')
+          div(class='col-md-12')
+            a(onClick='scrollTo("energy")' href='#') Energy APIs
+              each apiEnergy in energyContent 
+                div(class='row')
+                  div(class='col-sm-11 col-sm-offset-1 ')
+                    a(onClick='scrollTo("#{apiEnergy.id}")' href='#') #{apiEnergy.url} #{apiEnergy.type}
         div(class='row row-divider')
           div(class='col-md-12')      
             h1(id="hub") Hub API's 
@@ -82,5 +89,21 @@ block content
                 h3 Error Response:
                   pre.prettyprint.linenums !{JSON.stringify(apiFuse.error.content)}
                 br
-
+        div(class='row row-divider')
+          div(class='col-md-12')
+            h1(id="energy") Energy API's 
+              each apiEnergy in energyContent 
+                h2(id='#{apiEnergy.id}') #{apiEnergy.url}
+                h3 Type:
+                p #{apiEnergy.type}
+                h3 Description:
+                p #{apiEnergy.description}
+                h3 Parameters:
+                each val,key in apiEnergy.parameters 
+                  p <b>#{key}</b>: #{val}
+                h3 Expected Response:
+                  pre.prettyprint.linenums !{JSON.stringify(apiEnergy.expected.content)}
+                h3 Error Response:
+                  pre.prettyprint.linenums !{JSON.stringify(apiEnergy.error.content)}
+                br
   div.footer

@@ -12,6 +12,52 @@ module.exports = function(app,userManager,projectName){
       res.render('index',{
         header:projectName+' Home',
         user:result,
+        energyContent:[{
+            id:"stats",
+            url:"/api/stats/",
+            type:"GET",
+            description:"Retrieves all available stats held for the date passed.",
+            parameters:{
+                  date:"A string in the format DD-MM-YYYY",
+            },
+            expected:{
+              content:'{success: "Stats retrieved!",stats: { STATS OBJECT} }'
+            },
+            error:{
+              content:'{error: "Stats couldn\'t be retrieved for this date.", stats:{}}'
+            }
+          },
+          {
+            id:"currentstats",
+            url:"/api/stats/current",
+            type:"GET",
+            description:"Retrieves all available stats with field names beginning with current, for the date passed.",
+            parameters:{
+                  date:"A string in the format DD-MM-YYYY",
+            },
+            expected:{
+              content:'{success: "Stats retrieved!",stats: { STATS OBJECT} }'
+            },
+            error:{
+              content:'{error: "Stats couldn\'t be retrieved for this date.", stats:{}}'
+            }
+          },
+          {
+            id:"historicstats",
+            url:"/api/stats/historic",
+            type:"GET",
+            description:"Retrieves all available stats with field names beginning with historic, for the date passed.",
+            parameters:{
+                  date:"A string in the format DD-MM-YYYY",
+            },
+            expected:{
+              content:'{success: "Stats retrieved!",stats: { STATS OBJECT} }'
+            },
+            error:{
+              content:'{error: "Stats couldn\'t be retrieved for this date.", stats:{}}'
+            }
+          },
+        ],
         userContent:[{
             id:"login",
             url:"/api/user/login",

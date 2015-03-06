@@ -4,17 +4,17 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
     --------------------USER LOGIN---------------------
   */
 
-  app.post('/api/user/login', function (req, res) {
+  app.get('/api/user/', function (req, res) {
 
     var required = ["email","password"];
-    var allParams = commonFunctions.checkParams(req.body,required);
+    var allParams = commonFunctions.checkParams(req.query,required);
 
     if(!allParams){
       res.status(400).json({error:"Missing a parameter"});
       return;
     }
     
-    commonFunctions.logRequest("/api/user/login",req.body);
+    commonFunctions.logRequest("/api/user/login",req.query);
 
     var callback = function(result){
       if(result===-1){
@@ -27,7 +27,7 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
       }
     };
 
-    userManager.login(req.body.email,req.body.password,callback);
+    userManager.login(req.query.email,req.query.password,callback);
   }),
 
   /*
@@ -86,7 +86,7 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
     --------------------USER REGISTER---------------------
   */
 
-  app.post('/api/user/register', function (req, res) {
+  app.post('/api/user/', function (req, res) {
     var required = ["email","password","name"];
     var allParams = commonFunctions.checkParams(req.body,required);
 
@@ -95,7 +95,7 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
       return;
     }
 
-    commonFunctions.logRequest("/api/user/register",req.body);
+    commonFunctions.logRequest("/api/user/",req.body);
 
     var callback = function(result,user){
       if(result===-1){

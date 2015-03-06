@@ -2,7 +2,7 @@ extends ./layout.jade
 block content
   script.
     function submit(){
-      $.post('/api/user/login', $('#login-form').serialize()).done(function(data){
+      $.get('/api/user', $('#login-form').serialize()).done(function(data){
         console.log(data);
         window.location.replace("/");
       }).error(function(data){
