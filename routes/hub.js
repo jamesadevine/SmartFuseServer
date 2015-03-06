@@ -101,7 +101,7 @@ module.exports = function(app,commonFunctions,hubManager){
 
     var callback = function(result){
       if(result===-1){
-        res.status(400).json({error:"Hub not updated!"});
+        res.status(500).json({error:"Hub not updated!"});
       }else{
         res.status(200).json({success:"Hub updated!"});
       }
@@ -129,7 +129,7 @@ module.exports = function(app,commonFunctions,hubManager){
 
     var callback = function(result,hubs){
       if(result===-1){
-        res.status(400).json({error:"Hubs couldn't be retrieved"});
+        res.status(500).json({error:"Hubs couldn't be retrieved"});
       }else{
         res.status(200).json({success:"Hubs retrieved",hubs:hubs});
       }

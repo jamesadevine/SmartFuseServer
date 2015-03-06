@@ -36,7 +36,7 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
 
   app.put('/api/user/', function (req, res) {
 
-    var required = ["id","name","email","countryCode","houseSize"];
+    var required = ["userID","name","email","countryCode","houseSize"];
     var allParams = commonFunctions.checkParams(req.body,required);
 
     if(!allParams){
@@ -48,7 +48,7 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
 
     var callback = function(result){
       if(result===-1){
-        res.status(403).json({error:"User could not be updated"});
+        res.status(500).json({error:"User could not be updated"});
       }else{
         res.status(200).json({success:"User updated!"});
       }
@@ -76,7 +76,7 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
       if(result)
         res.status(200).json({success:"User removed"});
       else
-        res.status(403).json({error:"User couldn't be removed"});
+        res.status(500).json({error:"User couldn't be removed"});
     };
     userManager.remove(req.body.userID,callback);
     

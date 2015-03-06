@@ -18,7 +18,7 @@ module.exports = function(app,commonFunctions,energyManager){
 
     var callback = function(result,stats){
       if(result===-1){
-        res.status(400).json({error:"Stats couldn't be retrieved for this date.",stats:stats});
+        res.status(404).json({error:"Stats are not available for this date.",stats:stats});
       }else{
         res.status(200).json({success:"Stats retrieved!",stats:stats});
       }
@@ -41,7 +41,7 @@ module.exports = function(app,commonFunctions,energyManager){
 
     var callback = function(result,stats){
       if(result===-1){
-        res.status(400).json({error:"Stats couldn't be retrieved for this date.",stats:stats});
+        res.status(404).json({error:"Stats are not available for this date.",stats:stats});
       }else{
         res.status(200).json({success:"Stats retrieved!",stats:stats});
       }
@@ -64,7 +64,7 @@ module.exports = function(app,commonFunctions,energyManager){
 
     var callback = function(result,stats){
       if(result===-1){
-        res.status(400).json({error:"Stats couldn't be retrieved for this date.",stats:stats});
+        res.status(404).json({error:"Stats are not available for this date.",stats:stats});
       }else{
         res.status(200).json({success:"Stats retrieved!",stats:stats});
       }
