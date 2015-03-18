@@ -20,7 +20,7 @@ module.exports = function(app,commonFunctions,hubManager){
       if(result===-1){
         res.status(400).json({error:"Hub couldn't be added"});
       }else{
-        res.status(200).json({success:"Hub added!"});
+        res.status(201).json({success:"Hub added!"});
       }
     };
 

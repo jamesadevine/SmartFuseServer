@@ -568,10 +568,13 @@
 			}
 		},
 		{
+			"contents": "\nvar cheerio = require('cheerio');\nvar xmlParser = require('xml2js').parseString;\n\nvar schedule = require('node-schedule');\n\nvar generationLookup ={\n  COAL:{\n    color:\"#000000\",\n    normalText:\"Coal\"\n  },\n  NUCLEAR:{\n    color:\"#00FF00\",\n    normalText:\"Nuclear\"\n  },\n  WIND:{\n    color:\"#ADD8E6\",\n    normalText:\"Wind\"\n  },\n  OIL:{\n    color:\"#3B3131\",\n    normalText:\"Oil\"\n  },\n  OCGT:{\n    color:\"#B6B6B4\",\n    normalText:\"Open-Cycle Gas\"\n  },\n  CCGT:{\n    color:\"#726E6D\",\n    normalText:\"Combined-Cycle Gas\"\n  },\n  INTEW:{\n    color:\"#008000\",\n    normalText:\"East-West Irish Interconnector\"\n  },\n  INTFR:{\n    color:\"#0000ff\",\n    normalText:\"French Interconnector\"\n  },\n  INTIRL:{\n    color:\"#ffa500\",\n    normalText:\"Irish (Moyle) Interconnector\"\n  },\n  INTNED:{\n    color:\"#ff0033\",\n    normalText:\"Netherlands Interconnector\"\n  },\n  NPSHYD:{\n    color:\"#58FAF4\",\n    normalText:\"Non-Pumped-Storage Hydro\"\n  },\n  PS:{\n    color:\"#0000A0\",\n    normalText:\"Pumped Storage Hydro\"\n  },\n  OTHER:{\n    color:\"#FFA500\",\n    normalText:\"Other (including biomass)\"\n  }\n};\n\nmodule.exports = {\n  init:function(mongoose,request,moment){\n    this.mongoose = mongoose;\n    this.cheerio = cheerio;\n    this.request = request;\n    this.moment=moment;\n\n    this.EnergyStats = this.mongoose.model('EnergyStats',{\n      date:String,\n      currentPrice:{\n        DayBaseGbp: String,\n        DayBaseEur: String,\n        TotalVolume: String,\n        SparkSpread: String\n      },\n      currentGeneration:{\n        time:String,\n        total:String,\n        color:String,\n        normalText:String,\n        data:{}\n      },\n      currentCarbon:{\n        value:String,\n        generation:String,\n        status:String,\n        saving:String,\n        unit:String\n      },\n      historicGeneration:{\n        period:String,\n        total:String,\n        data:{}\n      },\n      historicPrice:{},\n      historicCarbon:{\n        title:String,\n        data:[{\n          time:String,\n          value:String\n        }]\n      }\n    });\n    \n    //this.EnergyStats.remove().exec();\n\n    this.carbonScraperURL = 'http://www.earth.org.uk/_gridCarbonIntensityGB.xml';\n    this.currentEnergyScraperURL = 'http://www.nordpoolspot.com/api/marketdata/page/1639';\n    this.currentGenerationScraperURL = 'http://www.bmreports.com/bsp/additional/soapfunctions.php?element=generationbyfueltypetable';\n    this.historicEnergyScraperURL = 'http://www.nordpoolspot.com/api/marketdata/page/4708';\n\n    var rule = new schedule.RecurrenceRule();\n\n    rule.minute = [0,15,30,45];\n\n    schedule.scheduleJob(rule, (function(self){\n      return function(){\n        self.carbonScraper();\n      };\n    })(this));\n\n    schedule.scheduleJob(rule, (function(self){\n      return function(){\n        self.currentEnergyScraper();\n      };\n    })(this));\n    schedule.scheduleJob(rule, (function(self){\n      return function(){\n        self.historicEnergyScraper();\n      };\n    })(this));\n    schedule.scheduleJob(rule, (function(self){\n      return function(){\n        self.generationScraper();\n      };\n    })(this));\n\n\n\n\n  },\n  carbonScraper:function(){\n    var parent = this;\n    this.request(this.carbonScraperURL, function(error, response, html){\n      // First we'll check to make sure no errors occurred when making the request\n      if(!error){\n\n        //parse the xml and filter out any unexpected characters in tags and attribs\n        xmlParser(html,{\n            trim:true,\n            normalize:true,\n            tagNameProcessors:[transformName],\n            attrNameProcessors:[transformName]\n          },\n          function(err,result){\n\n            //get the latest and historic data  \n            var latest = result.results.latest[0];\n            var historic = result.results.generationintensity[0].sample;\n\n            //build the current data object\n            var currentData ={\n              unit:'gCO2/kWh',\n              value:latest.carbonintensity[0],\n              generation:latest.generation[0],\n              status:result.results.status[0],\n              saving:result.results.saving[0]\n            };\n\n            var historicData = {\n              title:\"Recent mean GMT hourly generation intensity gCO2/kWh\",\n              data:[]\n            };\n\n            for(var i = 0;i<historic.length;i++)\n              historicData.data.push({time:historic[i].hour[0],value:historic[i].carbonintensity[0]});\n\n            historicData.data.reverse();\n\n            parent.updateEnergyStats({currentCarbonData:currentData,historicCarbonData:historicData},function(err,result){\n              if(!err)\n                console.log('Failed to save to mongo');\n              else\n                console.log('Data added');\n            });\n          }\n        );\n      }\n    });\n  },\n  currentEnergyScraper:function(){\n    var parent = this;\n\n    this.request(this.currentEnergyScraperURL, function(error, response, html){\n        // First we'll check to make sure no errors occurred when making the request\n        var data ={};\n        if(!error){\n            var jsonResponse = JSON.parse(html);\n            var todaysPrices = jsonResponse.data.Rows[1].Columns;\n            for(var i =0;i<todaysPrices.length; i++)\n              data[todaysPrices[i].Name]=todaysPrices[i].Value.replace(',','.');\n\n            parent.updateEnergyStats({currentPriceData:data},function(err,result){\n              if(!err)\n                console.log('Failed to save to mongo');\n              else\n                console.log('Data added');\n            });\n        }\n        \n    });\n  },\n  historicEnergyScraper:function(){\n\n    var parent = this;\n\n    this.request(this.historicEnergyScraperURL, function(error, response, html){\n        // First we'll check to make sure no errors occurred when making the request\n        var data ={};\n        if(!error){\n            var jsonResponse = JSON.parse(html);\n            var rows = jsonResponse.data.Rows;\n            for(var i=0;i<24;i++){\n              \n              var historicPriceColumns = rows[i].Columns;\n              //console.log('prices ',historicPriceColumns);\n              for(var j =1;j<historicPriceColumns.length; j++){\n                if(!data[i])\n                  data[i]=[];\n                data[i].push({\n                  date:historicPriceColumns[j].Name,\n                  value:historicPriceColumns[j].Value.replace(',','.')\n                });\n              }\n                \n            }\n            \n            parent.updateEnergyStats({historicPriceData:data},function(err,result){\n              if(!err)\n                console.log('Failed to save to mongo');\n              else\n                console.log('Data added');\n            });\n        }\n    });\n  },\n  generationScraper:function(){\n    \n    var parent = this;\n\n    this.request(this.currentGenerationScraperURL, function(error, response, html){\n        // First we'll check to make sure no errors occurred when making the request\n        var data ={};\n        if(!error){\n          \n          xmlParser(html,{\n            trim:true,\n            normalize:true,\n            tagNameProcessors:[transformName],\n            attrNameProcessors:[transformName]\n          },function(err,result){\n\n            \n            \n\n            var instantaneousVals = result.generationbyfueltypetable.inst[0];\n\n            var datetime = instantaneousVals.$.at.split(' ');\n            var time = datetime[1];\n            var currentTotal = instantaneousVals.$.total;\n\n            //process current data\n            var currentGenerationStats = {time:time,total:currentTotal,data:[]};\n            for(var i=0;i<instantaneousVals.fuel.length;i++){\n\n              var temp = generationLookup[instantaneousVals.fuel[i].$.type];\n              \n              currentGenerationStats.data.push({\n                type: instantaneousVals.fuel[i].$.type,\n                val: instantaneousVals.fuel[i].$.val,\n                color:temp.color,\n                normalText:temp.normalText,\n                percent: instantaneousVals.fuel[i].$.pct,\n              });\n            }\n\n            var last24hrsVals = result.generationbyfueltypetable.last24h[0];\n            var period = last24hrsVals.$.at;\n            var historicTotal = last24hrsVals.$.total;\n            //get data from the last 24hrs\n            var historicGenerationData = {period:period,total:historicTotal,data:[]};\n\n            for(var j=0;j<last24hrsVals.fuel.length;j++){\n\n              var temp = generationLookup[last24hrsVals.fuel[j].$.type];\n\n              historicGenerationData.data.push({\n                type: last24hrsVals.fuel[j].$.type,\n                val: last24hrsVals.fuel[j].$.val,\n                color:temp.color,\n                normalText:temp.normalText,\n                percent: last24hrsVals.fuel[j].$.pct,\n              });\n            }\n\n            parent.updateEnergyStats({currentGenerationStats:currentGenerationStats,historicGenerationStats:historicGenerationData},function(err,result){\n              if(!err)\n                console.log('Failed to save to mongo');\n              else\n                console.log('Data added');\n            });\n\n          });\n          \n          \n        }\n    });\n  },\n  updateEnergyStats:function(values,callback){\n    var moment = this.moment();\n    var dateString = moment.format('DD-MM-YYYY');\n    var EnergyStats = this.EnergyStats;\n    \n    this.EnergyStats.findOne({date:dateString},function (err,stats) {\n      if (err){\n        console.log(err);\n        callback(-1,null);\n        return;\n      }else{\n        //check if the stats doesn't exist\n        if(stats === null){\n          //add a new stat if it doesn't exist!!\n          var newFuse = new EnergyStats({\n            date:dateString,\n            currentPrice:(values.currentPriceData)?values.currentPriceData:'',\n            historicPrice:(values.historicPriceData)?values.historicPriceData:'',\n            currentCarbon:(values.currentCarbonData)?values.currentCarbonData:'',\n            historicCarbon:(values.historicCarbonData)?values.historicCarbonData:'',\n            currentGeneration:(values.currentGenerationStats)?values.currentGenerationStats:'',\n            historicGeneration:(values.historicGenerationStats)?values.historicGenerationStats:''\n          });\n\n          //save the fuse to mongo!\n          newFuse.save(function (err, fuse) {\n            if (err)\n              callback(-1,null);\n            else\n              callback(true,null);\n          });\n\n        }else{\n          //stats has been found, add the data\n          if(values.currentPriceData)\n            stats.currentPrice = values.currentPriceData;\n\n          if(values.historicPriceData)\n            stats.historicPrice = values.historicPriceData;\n\n          if(values.currentCarbonData)\n            stats.currentCarbon = values.currentCarbonData;\n\n          if(values.historicCarbonData)\n            stats.historicCarbon = values.historicCarbonData;\n\n          if(values.currentGenerationStats)\n            stats.currentGeneration = values.currentGenerationStats;\n\n          if(values.historicGenerationStats)\n            stats.historicGeneration = values.historicGenerationStats;\n\n\n\n          //save the data to mongo!\n          stats.save(function (err, stats) {\n            console.log(err);\n            if (err)\n              callback(-1,null);\n            else\n              callback(true,null);\n          });\n        }\n      }\n    });\n  },\n  getFullStats: function(date,callback,filter){\n    var targetDate = this.moment(date,\"DD-MM-YYYY\");\n    this.EnergyStats.find({date:targetDate.format('DD-MM-YYYY')},function (err,stats) {\n      if (err){\n        console.log(err);\n        callback(-1,{});\n        return;\n      }else{\n        if(!stats.length){\n          callback(-1,{});\n          return;\n        }\n\n        if(filter == 'current'){\n          stats[0].historicPrice = undefined;\n          stats[0].historicCarbon = undefined;\n          stats[0].historicGeneration = undefined;\n        }\n\n        if(filter == 'historic'){\n          stats[0].currentCarbon = undefined;\n          stats[0].currentGeneration = undefined;\n          stats[0].currentPrice = undefined;\n        }\n        \n        callback(true,stats[0]);\n        return;\n      }\n    });\n  },\n  getEnergyStats:function(countryCode){\n    var energyStats={\n      uk:{\n        //annual average\n        //http://www.ukpower.co.uk/home_energy/average-energy-bill\n        average:{\n          small:2000,\n          medium:3200,\n          large:4900\n        },\n        //monthly average price\n        price:{\n          small:53,\n          medium:77,\n          large:107\n        }\n      },\n      us:{\n      }\n    };\n    //returns the energy stats for the respective countries\n    return energyStats[countryCode];\n  }\n};\nfunction transformName(name){\n  //filter out the crap that some api's return...\n  return name.toLowerCase().replace(/[^\\w\\s]|_/g, \"\").replace(/\\s+/g, \" \");\n}\n\n",
 			"file": "managers/energymanager.js",
+			"file_size": 14654,
+			"file_write_time": 1424478430000000,
 			"settings":
 			{
-				"buffer_size": 14654,
+				"buffer_size": 12900,
 				"line_ending": "Unix"
 			}
 		},
@@ -579,7 +582,39 @@
 			"file": "routes/stats.js",
 			"settings":
 			{
-				"buffer_size": 2090,
+				"buffer_size": 2078,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "routes/user.js",
+			"settings":
+			{
+				"buffer_size": 3050,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "views/login.jade",
+			"settings":
+			{
+				"buffer_size": 886,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "routes/hub.js",
+			"settings":
+			{
+				"buffer_size": 3375,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "routes/fuse.js",
+			"settings":
+			{
+				"buffer_size": 5370,
 				"line_ending": "Unix"
 			}
 		}
@@ -616,6 +651,7 @@
 	},
 	"file_history":
 	[
+		"/Users/James/Desktop/FYP/app/SmartFuse/www/js/temp.js",
 		"/Users/James/Downloads/main.c",
 		"/Users/James/Downloads/reutils-1.0.0-SNAPSHOT/reutils-trunk/javasrc/org/hd/d/edh/FUELINSTUtils.java",
 		"/Users/James/Downloads/reutils-1.0.0-SNAPSHOT/reutils-trunk/javasrc/org/hd/d/edh/MainProperties.java",
@@ -742,8 +778,7 @@
 		"/Volumes/allusers/api/user/register_user_without_fb.php",
 		"/Volumes/allusers/users/profiles/us5405ee7120744/profile.xml",
 		"/Volumes/allusers/users/profiles/us540090cb9d0b7/profile.xml",
-		"/Users/James/Desktop/NoviPackaged/Code/www/html/api/shared/databases.php",
-		"/Volumes/allusers/api/shared/facebook_categories_to_db.php"
+		"/Users/James/Desktop/NoviPackaged/Code/www/html/api/shared/databases.php"
 	],
 	"find":
 	{
@@ -910,7 +945,7 @@
 	"groups":
 	[
 		{
-			"selected": 2,
+			"selected": 3,
 			"sheets":
 			[
 				{
@@ -1142,7 +1177,7 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 4888.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -1159,8 +1194,8 @@
 						"selection":
 						[
 							[
-								248,
-								275
+								235,
+								163
 							]
 						],
 						"settings":
@@ -1276,8 +1311,125 @@
 						"selection":
 						[
 							[
-								182,
-								182
+								322,
+								567
+							]
+						],
+						"settings":
+						{
+							"annotations":
+							[
+								"TODO",
+								"README",
+								"FIXME"
+							],
+							"csslint_options":
+							{
+								"adjoining-classes": "warning",
+								"box-model": true,
+								"box-sizing": "warning",
+								"compatible-vendor-prefixes": "warning",
+								"display-property-grouping": true,
+								"duplicate-background-images": "warning",
+								"duplicate-properties": true,
+								"empty-rules": true,
+								"errors": true,
+								"fallback-colors": "warning",
+								"floats": "warning",
+								"font-faces": "warning",
+								"font-sizes": "warning",
+								"gradients": "warning",
+								"ids": "warning",
+								"import": "warning",
+								"important": "warning",
+								"known-properties": true,
+								"outline-none": "warning",
+								"overqualified-elements": "warning",
+								"qualified-headings": "warning",
+								"regex-selectors": "warning",
+								"rules-count": "warning",
+								"shorthand": "warning",
+								"star-property-hack": "warning",
+								"text-indent": "warning",
+								"underscore-property-hack": "warning",
+								"unique-headings": "warning",
+								"universal-selector": "warning",
+								"vendor-prefix": true,
+								"zero-units": "warning"
+							},
+							"gjslint_ignore":
+							[
+								110.0
+							],
+							"gjslint_options":
+							[
+							],
+							"javascript_linter": "jshint",
+							"jshint_options":
+							{
+								"browser": true,
+								"evil": true,
+								"regexdash": true,
+								"sub": true,
+								"trailing": true,
+								"wsh": true
+							},
+							"pep8": true,
+							"pep8_ignore":
+							[
+								"E501"
+							],
+							"perl_linter": "perlcritic",
+							"pyflakes_ignore":
+							[
+							],
+							"pyflakes_ignore_import_*": true,
+							"sublimelinter": true,
+							"sublimelinter_delay": 2.0,
+							"sublimelinter_disable":
+							[
+							],
+							"sublimelinter_executable_map":
+							{
+							},
+							"sublimelinter_fill_outlines": false,
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "fill",
+							"sublimelinter_notes": false,
+							"sublimelinter_objj_check_ascii": false,
+							"sublimelinter_popup_errors_on_save": false,
+							"sublimelinter_syntax_map":
+							{
+								"C++": "c",
+								"Python Django": "python",
+								"Ruby on Rails": "ruby"
+							},
+							"sublimelinter_wrap_find": true,
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 804.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "managers/usermanager.js",
+					"settings":
+					{
+						"buffer_size": 2362,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								287,
+								165
 							]
 						],
 						"settings":
@@ -1377,123 +1529,6 @@
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 4,
-					"file": "managers/usermanager.js",
-					"settings":
-					{
-						"buffer_size": 2362,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								328,
-								300
-							]
-						],
-						"settings":
-						{
-							"annotations":
-							[
-								"TODO",
-								"README",
-								"FIXME"
-							],
-							"csslint_options":
-							{
-								"adjoining-classes": "warning",
-								"box-model": true,
-								"box-sizing": "warning",
-								"compatible-vendor-prefixes": "warning",
-								"display-property-grouping": true,
-								"duplicate-background-images": "warning",
-								"duplicate-properties": true,
-								"empty-rules": true,
-								"errors": true,
-								"fallback-colors": "warning",
-								"floats": "warning",
-								"font-faces": "warning",
-								"font-sizes": "warning",
-								"gradients": "warning",
-								"ids": "warning",
-								"import": "warning",
-								"important": "warning",
-								"known-properties": true,
-								"outline-none": "warning",
-								"overqualified-elements": "warning",
-								"qualified-headings": "warning",
-								"regex-selectors": "warning",
-								"rules-count": "warning",
-								"shorthand": "warning",
-								"star-property-hack": "warning",
-								"text-indent": "warning",
-								"underscore-property-hack": "warning",
-								"unique-headings": "warning",
-								"universal-selector": "warning",
-								"vendor-prefix": true,
-								"zero-units": "warning"
-							},
-							"gjslint_ignore":
-							[
-								110.0
-							],
-							"gjslint_options":
-							[
-							],
-							"javascript_linter": "jshint",
-							"jshint_options":
-							{
-								"browser": true,
-								"evil": true,
-								"regexdash": true,
-								"sub": true,
-								"trailing": true,
-								"wsh": true
-							},
-							"pep8": true,
-							"pep8_ignore":
-							[
-								"E501"
-							],
-							"perl_linter": "perlcritic",
-							"pyflakes_ignore":
-							[
-							],
-							"pyflakes_ignore_import_*": true,
-							"sublimelinter": true,
-							"sublimelinter_delay": 2.0,
-							"sublimelinter_disable":
-							[
-							],
-							"sublimelinter_executable_map":
-							{
-							},
-							"sublimelinter_fill_outlines": false,
-							"sublimelinter_gutter_marks": true,
-							"sublimelinter_gutter_marks_theme": "simple",
-							"sublimelinter_mark_style": "fill",
-							"sublimelinter_notes": false,
-							"sublimelinter_objj_check_ascii": false,
-							"sublimelinter_popup_errors_on_save": false,
-							"sublimelinter_syntax_map":
-							{
-								"C++": "c",
-								"Python Django": "python",
-								"Ruby on Rails": "ruby"
-							},
-							"sublimelinter_wrap_find": true,
-							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
-							"tab_size": 2,
-							"translate_tabs_to_spaces": true
-						},
-						"translation.x": 0.0,
-						"translation.y": 471.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -1620,15 +1655,249 @@
 					"file": "managers/energymanager.js",
 					"settings":
 					{
-						"buffer_size": 14654,
+						"buffer_size": 12900,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								1092,
-								1074
+								2015,
+								2015
+							]
+						],
+						"settings":
+						{
+							"annotations":
+							[
+								"TODO",
+								"README",
+								"FIXME"
+							],
+							"csslint_options":
+							{
+								"adjoining-classes": "warning",
+								"box-model": true,
+								"box-sizing": "warning",
+								"compatible-vendor-prefixes": "warning",
+								"display-property-grouping": true,
+								"duplicate-background-images": "warning",
+								"duplicate-properties": true,
+								"empty-rules": true,
+								"errors": true,
+								"fallback-colors": "warning",
+								"floats": "warning",
+								"font-faces": "warning",
+								"font-sizes": "warning",
+								"gradients": "warning",
+								"ids": "warning",
+								"import": "warning",
+								"important": "warning",
+								"known-properties": true,
+								"outline-none": "warning",
+								"overqualified-elements": "warning",
+								"qualified-headings": "warning",
+								"regex-selectors": "warning",
+								"rules-count": "warning",
+								"shorthand": "warning",
+								"star-property-hack": "warning",
+								"text-indent": "warning",
+								"underscore-property-hack": "warning",
+								"unique-headings": "warning",
+								"universal-selector": "warning",
+								"vendor-prefix": true,
+								"zero-units": "warning"
+							},
+							"gjslint_ignore":
+							[
+								110.0
+							],
+							"gjslint_options":
+							[
+							],
+							"javascript_linter": "jshint",
+							"jshint_options":
+							{
+								"browser": true,
+								"evil": true,
+								"regexdash": true,
+								"sub": true,
+								"trailing": true,
+								"wsh": true
+							},
+							"pep8": true,
+							"pep8_ignore":
+							[
+								"E501"
+							],
+							"perl_linter": "perlcritic",
+							"pyflakes_ignore":
+							[
+							],
+							"pyflakes_ignore_import_*": true,
+							"sublimelinter": true,
+							"sublimelinter_delay": 2.0,
+							"sublimelinter_disable":
+							[
+							],
+							"sublimelinter_executable_map":
+							{
+							},
+							"sublimelinter_fill_outlines": false,
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "fill",
+							"sublimelinter_notes": false,
+							"sublimelinter_objj_check_ascii": false,
+							"sublimelinter_popup_errors_on_save": false,
+							"sublimelinter_syntax_map":
+							{
+								"C++": "c",
+								"Python Django": "python",
+								"Ruby on Rails": "ruby"
+							},
+							"sublimelinter_wrap_find": true,
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 792.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "routes/stats.js",
+					"settings":
+					{
+						"buffer_size": 2078,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1461,
+								1461
+							]
+						],
+						"settings":
+						{
+							"annotations":
+							[
+								"TODO",
+								"README",
+								"FIXME"
+							],
+							"csslint_options":
+							{
+								"adjoining-classes": "warning",
+								"box-model": true,
+								"box-sizing": "warning",
+								"compatible-vendor-prefixes": "warning",
+								"display-property-grouping": true,
+								"duplicate-background-images": "warning",
+								"duplicate-properties": true,
+								"empty-rules": true,
+								"errors": true,
+								"fallback-colors": "warning",
+								"floats": "warning",
+								"font-faces": "warning",
+								"font-sizes": "warning",
+								"gradients": "warning",
+								"ids": "warning",
+								"import": "warning",
+								"important": "warning",
+								"known-properties": true,
+								"outline-none": "warning",
+								"overqualified-elements": "warning",
+								"qualified-headings": "warning",
+								"regex-selectors": "warning",
+								"rules-count": "warning",
+								"shorthand": "warning",
+								"star-property-hack": "warning",
+								"text-indent": "warning",
+								"underscore-property-hack": "warning",
+								"unique-headings": "warning",
+								"universal-selector": "warning",
+								"vendor-prefix": true,
+								"zero-units": "warning"
+							},
+							"gjslint_ignore":
+							[
+								110.0
+							],
+							"gjslint_options":
+							[
+							],
+							"javascript_linter": "jshint",
+							"jshint_options":
+							{
+								"browser": true,
+								"evil": true,
+								"regexdash": true,
+								"sub": true,
+								"trailing": true,
+								"wsh": true
+							},
+							"pep8": true,
+							"pep8_ignore":
+							[
+								"E501"
+							],
+							"perl_linter": "perlcritic",
+							"pyflakes_ignore":
+							[
+							],
+							"pyflakes_ignore_import_*": true,
+							"sublimelinter": true,
+							"sublimelinter_delay": 2.0,
+							"sublimelinter_disable":
+							[
+							],
+							"sublimelinter_executable_map":
+							{
+							},
+							"sublimelinter_fill_outlines": false,
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "fill",
+							"sublimelinter_notes": false,
+							"sublimelinter_objj_check_ascii": false,
+							"sublimelinter_popup_errors_on_save": false,
+							"sublimelinter_syntax_map":
+							{
+								"C++": "c",
+								"Python Django": "python",
+								"Ruby on Rails": "ruby"
+							},
+							"sublimelinter_wrap_find": true,
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 448.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "routes/user.js",
+					"settings":
+					{
+						"buffer_size": 3050,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2900,
+								2900
 							]
 						],
 						"settings":
@@ -1733,19 +2002,136 @@
 					"type": "text"
 				},
 				{
-					"buffer": 7,
-					"file": "routes/stats.js",
+					"buffer": 9,
+					"file": "views/login.jade",
 					"settings":
 					{
-						"buffer_size": 2090,
+						"buffer_size": 886,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								847,
-								847
+								80,
+								80
+							]
+						],
+						"settings":
+						{
+							"annotations":
+							[
+								"TODO",
+								"README",
+								"FIXME"
+							],
+							"csslint_options":
+							{
+								"adjoining-classes": "warning",
+								"box-model": true,
+								"box-sizing": "warning",
+								"compatible-vendor-prefixes": "warning",
+								"display-property-grouping": true,
+								"duplicate-background-images": "warning",
+								"duplicate-properties": true,
+								"empty-rules": true,
+								"errors": true,
+								"fallback-colors": "warning",
+								"floats": "warning",
+								"font-faces": "warning",
+								"font-sizes": "warning",
+								"gradients": "warning",
+								"ids": "warning",
+								"import": "warning",
+								"important": "warning",
+								"known-properties": true,
+								"outline-none": "warning",
+								"overqualified-elements": "warning",
+								"qualified-headings": "warning",
+								"regex-selectors": "warning",
+								"rules-count": "warning",
+								"shorthand": "warning",
+								"star-property-hack": "warning",
+								"text-indent": "warning",
+								"underscore-property-hack": "warning",
+								"unique-headings": "warning",
+								"universal-selector": "warning",
+								"vendor-prefix": true,
+								"zero-units": "warning"
+							},
+							"gjslint_ignore":
+							[
+								110.0
+							],
+							"gjslint_options":
+							[
+							],
+							"javascript_linter": "jshint",
+							"jshint_options":
+							{
+								"browser": true,
+								"evil": true,
+								"regexdash": true,
+								"sub": true,
+								"trailing": true,
+								"wsh": true
+							},
+							"pep8": true,
+							"pep8_ignore":
+							[
+								"E501"
+							],
+							"perl_linter": "perlcritic",
+							"pyflakes_ignore":
+							[
+							],
+							"pyflakes_ignore_import_*": true,
+							"sublimelinter": true,
+							"sublimelinter_delay": 2.0,
+							"sublimelinter_disable":
+							[
+							],
+							"sublimelinter_executable_map":
+							{
+							},
+							"sublimelinter_fill_outlines": false,
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "fill",
+							"sublimelinter_notes": false,
+							"sublimelinter_objj_check_ascii": false,
+							"sublimelinter_popup_errors_on_save": false,
+							"sublimelinter_syntax_map":
+							{
+								"C++": "c",
+								"Python Django": "python",
+								"Ruby on Rails": "ruby"
+							},
+							"sublimelinter_wrap_find": true,
+							"syntax": "Packages/Text/Plain text.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "routes/hub.js",
+					"settings":
+					{
+						"buffer_size": 3375,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								596,
+								596
 							]
 						],
 						"settings":
@@ -1844,7 +2230,124 @@
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 169.0,
+						"translation.y": 420.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 11,
+					"file": "routes/fuse.js",
+					"settings":
+					{
+						"buffer_size": 5370,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								776,
+								776
+							]
+						],
+						"settings":
+						{
+							"annotations":
+							[
+								"TODO",
+								"README",
+								"FIXME"
+							],
+							"csslint_options":
+							{
+								"adjoining-classes": "warning",
+								"box-model": true,
+								"box-sizing": "warning",
+								"compatible-vendor-prefixes": "warning",
+								"display-property-grouping": true,
+								"duplicate-background-images": "warning",
+								"duplicate-properties": true,
+								"empty-rules": true,
+								"errors": true,
+								"fallback-colors": "warning",
+								"floats": "warning",
+								"font-faces": "warning",
+								"font-sizes": "warning",
+								"gradients": "warning",
+								"ids": "warning",
+								"import": "warning",
+								"important": "warning",
+								"known-properties": true,
+								"outline-none": "warning",
+								"overqualified-elements": "warning",
+								"qualified-headings": "warning",
+								"regex-selectors": "warning",
+								"rules-count": "warning",
+								"shorthand": "warning",
+								"star-property-hack": "warning",
+								"text-indent": "warning",
+								"underscore-property-hack": "warning",
+								"unique-headings": "warning",
+								"universal-selector": "warning",
+								"vendor-prefix": true,
+								"zero-units": "warning"
+							},
+							"gjslint_ignore":
+							[
+								110.0
+							],
+							"gjslint_options":
+							[
+							],
+							"javascript_linter": "jshint",
+							"jshint_options":
+							{
+								"browser": true,
+								"evil": true,
+								"regexdash": true,
+								"sub": true,
+								"trailing": true,
+								"wsh": true
+							},
+							"pep8": true,
+							"pep8_ignore":
+							[
+								"E501"
+							],
+							"perl_linter": "perlcritic",
+							"pyflakes_ignore":
+							[
+							],
+							"pyflakes_ignore_import_*": true,
+							"sublimelinter": true,
+							"sublimelinter_delay": 2.0,
+							"sublimelinter_disable":
+							[
+							],
+							"sublimelinter_executable_map":
+							{
+							},
+							"sublimelinter_fill_outlines": false,
+							"sublimelinter_gutter_marks": true,
+							"sublimelinter_gutter_marks_theme": "simple",
+							"sublimelinter_mark_style": "fill",
+							"sublimelinter_notes": false,
+							"sublimelinter_objj_check_ascii": false,
+							"sublimelinter_popup_errors_on_save": false,
+							"sublimelinter_syntax_map":
+							{
+								"C++": "c",
+								"Python Django": "python",
+								"Ruby on Rails": "ruby"
+							},
+							"sublimelinter_wrap_find": true,
+							"syntax": "Packages/JavaScript/JavaScript.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1180.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"

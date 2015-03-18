@@ -9,7 +9,7 @@ module.exports = {
     this.energyManager =require('./energymanager');
 
     //mongoose model for mongo db!
-    this.Fuse = this.mongoose.model('Fuse',{
+    this.Appliance = this.mongoose.model('Appliance',{
       id:String,
       name:String,
       icon:String,
@@ -21,23 +21,23 @@ module.exports = {
       lastUpdated:Date
     });
 
-    //used to delete Fuses (wipe the database)
-    //this.Fuse.remove().exec();
+    //used to delete appliances (wipe the database)
+    //this.Appliance.remove().exec();
   },
 
-  //DEPRECATED: Adds a fuse to the database
-  add:function(hubid,ownerid,fuseid,name,callback){
-    var newFuse = new this.Fuse({id:fuseid,hubID:hubid,name:name,ownerID:ownerid,data:[],online:true,lastUpdated:new Date()});
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid},function (err, fuse) {
+  //DEPRECATED: Adds a appliance to the database
+  add:function(hubid,ownerid,applianceid,name,callback){
+    var newappliance = new this.Appliance({id:applianceid,hubID:hubid,name:name,ownerID:ownerid,data:[],online:true,lastUpdated:new Date()});
+    this.Appliance.findOne({ownerID:ownerid,id:applianceid},function (err, appliance) {
       if (err){
         callback(-1);
         return;
       }
         
-      if(fuse === null){
+      if(appliance === null){
         console.log("doesn'texists");
-        newFuse.save(function (err, fuse) {
-          callback(fuse);
+        newappliance.save(function (err, appliance) {
+          callback(appliance);
         });
       }else{
         console.log("exists");
@@ -46,18 +46,18 @@ module.exports = {
     });
     
   },
-  //removes a fuse from the database
-  remove:function (ownerid,fuseid,hubid,callback){
-    this.Fuse.remove({ownerID:ownerid,id:fuseid,hubID:hubid},function (err) {
+  //removes a appliance from the database
+  remove:function (ownerid,applianceid,hubid,callback){
+    this.Appliance.remove({ownerID:ownerid,id:applianceid,hubID:hubid},function (err) {
       if (err)
         callback(false);
       else
         callback(true);
     });
   },
-  //creates a Fuse if no record is found,
-  //adds data to a Fuse if a record is found!
-  addData:function (hubid,ownerid,fuseid,value,callback){
+  //creates a appliance if no record is found,
+  //adds data to a appliance if a record is found!
+  addData:function (hubid,ownerid,applianceid,value,callback){
     var moment = this.moment();
 
     var timestamp = moment.format();
@@ -66,32 +66,32 @@ module.exports = {
     //get the nearest 10 minute, rounds down
     var remainder = (10 - moment.minute()) % 10;
     var nearestTen = moment.add(remainder,"minutes").format("HH:mm");
-    var Fuse = this.Fuse;
+    var appliance = this.Appliance;
     
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid},function (err,fuse) {
+    this.Appliance.findOne({ownerID:ownerid,id:applianceid,hubID:hubid},function (err,appliance) {
       if (err){
         console.log(err);
         callback(-1,null);
         return;
       }else{
-        //check if the fuse doesn't exist
-        if(fuse === null){
-          //add a new fuse if it doesn't exist!!
-          var newFuse = new Fuse({
-            name:'Fuse '+fuseid,
-            id:fuseid,
-            description:"Change the fuse description to something more meaningful",
+        //check if the appliance doesn't exist
+        if(appliance === null){
+          //add a new appliance if it doesn't exist!!
+          var newappliance = new appliance({
+            name:'appliance '+applianceid,
+            id:applianceid,
+            description:"Change the appliance description to something more meaningful",
             icon:'img/appliances/help.png',
             online:true,
             ownerID:ownerid,
-            fuseID:fuseid,
+            applianceID:applianceid,
             hubID:hubid,
             lastUpdated:timestamp,
             data:[{value:value,date:dateString,time:nearestTen,samples:1,sum:value}]
           });
 
-          //save the fuse to mongo!
-          newFuse.save(function (err, fuse) {
+          //save the appliance to mongo!
+          newappliance.save(function (err, appliance) {
             if (err)
               callback(-1,null);
             else
@@ -99,8 +99,8 @@ module.exports = {
           });
 
         }else{
-          //fuse has been found, add the data
-          var currentData = fuse.data;
+          //appliance has been found, add the data
+          var currentData = appliance.data;
           var match = currentData.filter(function(el){
               return el.date === dateString && el.time === nearestTen;
           })[0];
@@ -124,7 +124,7 @@ module.exports = {
             match.value = Number(match.sum/match.samples).toFixed(2);
           }
           //save the data to mongo!
-          fuse.save(function (err, fuse) {
+          appliance.save(function (err, appliance) {
             if (err)
               callback(-1,null);
             else
@@ -134,10 +134,10 @@ module.exports = {
       }
     });
   },
-  //summarises the average for each fuse over a day
+  //summarises the average for each appliance over a day
   getSummaryData:function(user,ownerid,date,callback){
 
-    //the maximum number of fuses returned by the summary
+    //the maximum number of appliances returned by the summary
     var MAX = 4;
 
     //create a moment object for the target date
@@ -146,8 +146,8 @@ module.exports = {
     //get a local instance of energyManager
     var energyManager = this.energyManager;
 
-    //find all fuses belonging to the user
-    this.Fuse.find({ownerID:ownerid,'data.date':targetDate.format('DD-MM-YYYY')},function (err,fuses) {
+    //find all appliances belonging to the user
+    this.Appliance.find({ownerID:ownerid,'data.date':targetDate.format('DD-MM-YYYY')},function (err,appliances) {
 
       if (err){
         console.log(err);
@@ -157,14 +157,14 @@ module.exports = {
 
         var summaryData = [];
 
-        //go through each fuse and get relevant data
-        for(var i = 0;i<fuses.length;i++){
-          var currentFuse = fuses[i].toObject();
-          console.log(currentFuse);
+        //go through each appliance and get relevant data
+        for(var i = 0;i<appliances.length;i++){
+          var currentappliance = appliances[i].toObject();
+          console.log(currentappliance);
           var dataToAdd = {
-            name:currentFuse.name,
-            id:currentFuse.id,
-            data:currentFuse.data.filter(function(el){
+            name:currentappliance.name,
+            id:currentappliance.id,
+            data:currentappliance.data.filter(function(el){
               return el.date === targetDate.format('DD-MM-YYYY');
             })
           };
@@ -204,7 +204,7 @@ module.exports = {
           //calculate the number of kwatts
           var kwatts = (Number(total/currentSummary.data.length) * 3)/1000;
 
-          //calculate the daily price for the current fuse
+          //calculate the daily price for the current appliance
           tempDatapoint2.push((dailyPrice*kwatts).toFixed(2));
 
           if(i==MAX)
@@ -227,14 +227,14 @@ module.exports = {
       
     });
   },
-  //returns the average energy consumption for the past seven days for the selected fuse.
-  getSevenDaySummary:function(ownerid,fuseid,hubid,callback){
+  //returns the average energy consumption for the past seven days for the selected appliance.
+  getSevenDaySummary:function(ownerid,applianceid,hubid,callback){
 
     //get a local reference to the dateGenerator function 
     var dateGenerator = this.dateGenerator;
     
-    //find the fuse
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid},function (err,fuse) {
+    //find the appliance
+    this.Appliance.findOne({ownerID:ownerid,id:applianceid,hubID:hubid},function (err,appliance) {
       if (err){
         console.log(err);
         callback(-1);
@@ -248,15 +248,15 @@ module.exports = {
         var summaryData = [];
         var names =[]
 
-        //get the fuse date relating to the selected date range
-        var data = fuse.data.filter(function(el){
+        //get the appliance date relating to the selected date range
+        var data = appliance.data.filter(function(el){
           return targetDates.indexOf(el.date)>-1;
         });
 
         //loop through each date...
         for(var i=0;i<targetDates.length;i++){
 
-          //get the fuse data for the current targetDate
+          //get the appliance data for the current targetDate
           var day = data.filter(function(el){
             return el.date==targetDates[i];
           });
@@ -290,51 +290,51 @@ module.exports = {
       }
     });
   },
-  //gets all fuses for the user...
-  getFusesByOwner:function (ownerid,callback){
+  //gets all appliances for the user...
+  getappliancesByOwner:function (ownerid,callback){
 
-    //find all fuses
-    this.Fuse.find({ownerID:ownerid},function (err, fuses) {
+    //find all appliances
+    this.Appliance.find({ownerID:ownerid},function (err, appliances) {
       if (err) return [];
 
-      //set each fuses data to undefined so that we don't return it...
-      for(var i=0;i<fuses.length;i++)
-        fuses[i].data=undefined;
+      //set each appliances data to undefined so that we don't return it...
+      for(var i=0;i<appliances.length;i++)
+        appliances[i].data=undefined;
 
       //return the data to the client
-      callback(fuses);
+      callback(appliances);
     });
 
   },
-  //get a particular fuse
-  getFuse:function (ownerid,fuseid,hubid,callback){
-    //find the fuse!
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid},function (err, fuse) {
+  //get a particular appliance
+  getappliance:function (ownerid,applianceid,hubid,callback){
+    //find the appliance!
+    this.Appliance.findOne({ownerID:ownerid,id:applianceid,hubID:hubid},function (err, appliance) {
 
-      //return error if we can't find the fuse
-      //otherwise return the fuse 
-      if (err||fuse===null){
+      //return error if we can't find the appliance
+      //otherwise return the appliance 
+      if (err||appliance===null){
           callback(-1);
           return;
       }else
-        callback(fuse);
+        callback(appliance);
     });
   },
   //saves a base64 image to the server in png format
-  uploadImage:function(ownerid,fuseid,hubid,b64string,url,callback){
+  uploadImage:function(ownerid,applianceid,hubid,b64string,url,callback){
 
     //create relevant variables
     var directory = "/images/"+ownerid+"/"+hubid+"/";
-    var filename = fuseid+".png";
+    var filename = applianceid+".png";
     var location = url+directory+filename;
 
     //get a local reference to a javascript file system object
     var fs = this.fs;
 
-    //find the selected fuse
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid}, function(err,fuse){
+    //find the selected appliance
+    this.Appliance.findOne({ownerID:ownerid,id:applianceid,hubID:hubid}, function(err,appliance){
       //check for errors
-      if (err||fuse===null){
+      if (err||appliance===null){
           callback(-1);
           return;
       }else{
@@ -346,10 +346,10 @@ module.exports = {
             if (err)
               callback(-1);
             else{
-              //update icon for this fuse
-              fuse.icon = location;
-              //save the new fuse
-              fuse.save(function(err){
+              //update icon for this appliance
+              appliance.icon = location;
+              //save the new appliance
+              appliance.save(function(err){
                 if (err)
                   callback(-1);
                 else
@@ -383,18 +383,18 @@ module.exports = {
       dateArray.push(moment().subtract(i,'days').format("DD-MM-YYYY"));
     return dateArray;
   },
-  //edits a fuse based on the data provided
-  editFuse:function(ownerid,fuseid,hubid,fuseName,description,callback){
-    this.Fuse.findOne({ownerID:ownerid,id:fuseid,hubID:hubid}, function(err,fuse){
+  //edits a appliance based on the data provided
+  editappliance:function(ownerid,applianceid,hubid,applianceName,description,callback){
+    this.Appliance.findOne({ownerID:ownerid,id:applianceid,hubID:hubid}, function(err,appliance){
       
-      if (err||fuse===null){
+      if (err||appliance===null){
           callback(-1);
           return;
       }
 
-      fuse.name = fuseName;
-      fuse.description = description;
-      fuse.save(function(err){
+      appliance.name = applianceName;
+      appliance.description = description;
+      appliance.save(function(err){
         if (err)
           callback(-1);
         else

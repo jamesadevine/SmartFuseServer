@@ -54,7 +54,7 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
       }
     };
 
-    userManager.update(req.body.id,req.body.name,req.body.email,req.body.countryCode,req.body.houseSize,callback);
+    userManager.update(req.body.userID,req.body.name,req.body.email,req.body.countryCode,req.body.houseSize,callback);
   }),
 
   /*
@@ -102,7 +102,7 @@ module.exports = function(app,commonFunctions,userManager,fuseManager,energyMana
         res.status(400).json({error:"User already registered!"});
       }else{
         req.session.userID = user.id;
-        res.status(200).json({success:"User registered!",user:user});
+        res.status(201).json({success:"User registered!",user:user});
       }
     };
 

@@ -56,7 +56,9 @@ module.exports = {
         callback(-1);
         return;
       }
+
       if(user === null){
+        console.log("null",user);
         callback(-1);
       }else{
         user.name=name;
@@ -65,6 +67,7 @@ module.exports = {
         user.houseSize = houseSize;
         user.save(function(err){
           if (err){
+            console.log("ERR ",err);
             callback(-1);
             return;
           }

@@ -17,23 +17,23 @@ var request = require('request');
 var mongoose = require('mongoose'); //allows interation with MongoDB
 
 //connect to MongoDB!
-mongoose.connect('mongodb://localhost/smartfuse');
+mongoose.connect('mongodb://localhost/smartmonitoring');
 mongoose.connection.on('error', console.error.bind(console, 'connection error:'));
 
 //create instances of the various managers
 var userManager = require('./managers/usermanager.js');
-var fuseManager = require('./managers/fusemanager.js');
+var applianceManager = require('./managers/appliancemanager.js');
 var energyManager = require('./managers/energymanager.js');
 var hubManager = require('./managers/hubmanager.js');
 
 //instantiate managers...
 userManager.init(mongoose,uuid);
 hubManager.init(mongoose,uuid);
-fuseManager.init(mongoose,uuid,fs,moment);
+applianceManager.init(mongoose,uuid,fs,moment);
 energyManager.init(mongoose,request,moment);
 
 //create the project name 
-var projectName = "Smart Fuse -";
+var projectName = "Smart Monitoring -";
 
 //set up the app!
 app.set('view engine', 'jade');
@@ -123,9 +123,9 @@ var commonFunctions ={
   --------------------SETUP ROUTES----------------------
 */
 
-require('./routes/user.js')(app,commonFunctions,userManager,fuseManager,energyManager);
-require('./routes/fuse.js')(app,commonFunctions,fuseManager,io);
-require('./routes/fuses.js')(app,commonFunctions,fuseManager,userManager,hubManager);
+require('./routes/user.js')(app,commonFunctions,userManager,applianceManager,energyManager);
+require('./routes/appliance.js')(app,commonFunctions,applianceManager,io);
+require('./routes/appliances.js')(app,commonFunctions,applianceManager,userManager,hubManager);
 require('./routes/hub.js')(app,commonFunctions,hubManager);
 require('./routes/stats.js')(app,commonFunctions,energyManager);
 require('./site.js')(app,userManager,projectName);
