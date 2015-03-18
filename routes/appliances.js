@@ -53,7 +53,11 @@ module.exports = function(app,commonFunctions,applianceManager,userManager,hubMa
       res.status(200).json({success:"appliance summary retrieved",summary:result});
     };
     var callback2 = function(user){
-      applianceManager.getSummaryData(user,req.query.userID,req.query.date,callback);
+      console.log(user);
+      if(user === null)
+        res.status(404).json({error:"user not found"});
+      else
+        applianceManager.getSummaryData(user,req.query.userID,req.query.date,callback);
     };
     userManager.get(req.query.userID,callback2);
     

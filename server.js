@@ -124,7 +124,7 @@ var commonFunctions ={
 */
 
 require('./routes/user.js')(app,commonFunctions,userManager,applianceManager,energyManager);
-require('./routes/appliance.js')(app,commonFunctions,applianceManager,io);
+require('./routes/appliance.js')(app,commonFunctions,applianceManager,energyManager,io);
 require('./routes/appliances.js')(app,commonFunctions,applianceManager,userManager,hubManager);
 require('./routes/hub.js')(app,commonFunctions,hubManager);
 require('./routes/stats.js')(app,commonFunctions,energyManager);

@@ -78,7 +78,7 @@ module.exports = function(app,userManager,projectName){
             id:"register",
             url:"/api/user/register",
             type:"POST",
-            description:"Registers a user with the Smart Fuse Project.",
+            description:"Registers a user with the Smart Monitoring Project.",
             parameters:{
                   email:"A string containing the email address of the user.",
                   password:"A string containing the password for the user, this must match the \"confpassword\" parameter.",
@@ -191,151 +191,151 @@ module.exports = function(app,userManager,projectName){
           }],
       fuseContent:[
           {
-            id:"getfuses",
-            url:"/api/fuses",
+            id:"getappliances",
+            url:"/api/appliances",
             type:"GET",
-            description:"Gets the fuses based on a supplied user ID",
+            description:"Gets the appliances based on a supplied user ID",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
             },
             expected:{
-              content:'{success: "Fuses retrieved",fuses: [array of fuses]}'
+              content:'{success: "appliances retrieved",appliances: [array of appliances]}'
             },
             error:{
-              content:'{success: "Fuses retrieved",fuses: [empty array]}'
+              content:'{success: "appliances retrieved",appliances: [empty array]}'
             }
           },
           {
-            id:"fusessummary",
-            url:"/api/fuses/summary",
+            id:"appliancessummary",
+            url:"/api/appliances/summary",
             type:"GET",
-            description:"Gets the users fuse summary for the date given",
+            description:"Gets the users appliance summary for the date given",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
                   date:"A string containing the desired date for summary in the format DD-MM-YYYY"
             },
             expected:{
-              content:'{success: "Fuse summary retrieved",summary: {summary object}}'
+              content:'{success: "appliance summary retrieved",summary: {summary object}}'
             },
             error:{
               content:'None'
             }
           },
           {
-            id:"addfuse",
-            url:"/api/fuse/add [DEPRECATED]",
+            id:"addappliance",
+            url:"/api/appliance/add [DEPRECATED]",
             type:"POST",
-            description:"Adds a fuse manually to Smart Fuse Project [DEPRECATED in favour of adddata]",
+            description:"Adds a appliance manually to Smart appliance Project [DEPRECATED in favour of adddata]",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-                  fuseID:"The ID of the fuse to add.",
-                  fuseName:"The symbolic name of the fuse"
+                  applianceID:"The ID of the appliance to add.",
+                  applianceName:"The symbolic name of the appliance"
             },
             expected:{
-              content:'{success: "Fuses retrieved",fuses: []}'
+              content:'{success: "appliances retrieved",appliances: []}'
             },
             error:{
-              content:'{error: "Fuse already exists"}'
+              content:'{error: "appliance already exists"}'
             }
           },
           {
-            id:"uploadfuse",
-            url:"/api/fuse/upload",
+            id:"uploadappliance",
+            url:"/api/appliance/upload",
             type:"POST",
             description:"Uploads an image in base 64 format to the server.",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-                  fuseID:"The ID of the fuse to upload an icon for.",
+                  applianceID:"The ID of the appliance to upload an icon for.",
                   image:"The base 64 string of the image."
             },
             expected:{
-              content:'{success: "Fuse data added"}'
+              content:'{success: "appliance data added"}'
             },
             error:{
-              content:'{error: "Fuse not found"}'
+              content:'{error: "appliance not found"}'
             }
           },
           {
-            id:"getfuse",
-            url:"/api/fuse",
+            id:"getappliance",
+            url:"/api/appliance",
             type:"GET",
-            description:"Gets a singular fuse based on a user ID and a fuse ID",
+            description:"Gets a singular appliance based on a user ID and a appliance ID",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-                  fuseID:"The ID of the fuse to fetch.",
+                  applianceID:"The ID of the appliance to fetch.",
             },
             expected:{
-              content:'{success: "Fuse retrieved",fuse: [fuse object]}'
+              content:'{success: "appliance retrieved",appliance: [appliance object]}'
             },
             error:{
-              content:'{error: "Fuse not found"}'
+              content:'{error: "appliance not found"}'
             }
           },
           {
-            id:"postfuse",
-            url:"/api/fuse/",
+            id:"postappliance",
+            url:"/api/appliance/",
             type:"POST",
-            description:"If the fuse exists it adds an item to the data array - otherwise it creates it.\nManual creation can be manged by using the /api/fuse/add url\n Also notifys any live data listeners! COOL!",
+            description:"If the appliance exists it adds an item to the data array - otherwise it creates it.\nManual creation can be manged by using the /api/appliance/add url\n Also notifys any live data listeners! COOL!",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-                  fuseID:"The ID of the fuse to add.",
-                  fuseVal:"The data to be added"
+                  applianceID:"The ID of the appliance to add.",
+                  applianceVal:"The data to be added"
             },
             expected:{
-              content:'{success: "Fuse data added"}'
+              content:'{success: "appliance data added"}'
             },
             error:{
-              content:'{error: "Fuse not found"}'
+              content:'{error: "appliance not found"}'
             }
           },
           {
-            id:"putfuse",
-            url:"/api/fuse/",
+            id:"putappliance",
+            url:"/api/appliance/",
             type:"PUT",
-            description:"Updates the details of fuse held on the server.",
+            description:"Updates the details of appliance held on the server.",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-                  fuseID:"The ID of the fuse to upload an icon for.",
-                  fuseName:"The new name of the fuse",
-                  fuseDescription:"The new description of the fuse",
+                  applianceID:"The ID of the appliance to upload an icon for.",
+                  applianceName:"The new name of the appliance",
+                  applianceDescription:"The new description of the appliance",
             },
             expected:{
-              content:'{success: "Fuse data added"}'
+              content:'{success: "appliance data added"}'
             },
             error:{
-              content:'{error: "Fuse not found"}'
+              content:'{error: "appliance not found"}'
             }
           },
           {
-            id:"delfuse",
-            url:"/api/fuse",
+            id:"delappliance",
+            url:"/api/appliance",
             type:"DELETE",
-            description:"Removes a fuse from the Smart Fuse Project",
+            description:"Removes a appliance from the Smart appliance Project",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-                  fuseID:"The ID of the fuse to remove."
+                  applianceID:"The ID of the appliance to remove."
             },
             expected:{
-              content:'{success: "Fuse removed"}'
+              content:'{success: "appliance removed"}'
             },
             error:{
-              content:'{error: "Fuse couldn\'t be removed"}'
+              content:'{error: "appliance couldn\'t be removed"}'
             }
           },
           {
-            id:"fusesummary",
-            url:"/api/fuse/summary",
+            id:"appliancesummary",
+            url:"/api/appliance/summary",
             type:"GET",
-            description:"Fetches the seven day summary for the selected fuse",
+            description:"Fetches the seven day summary for the selected appliance",
             parameters:{
                   userID:"A string containing the id of the user - retrieved from \"/api/user/login\"",
-                  fuseID:"The ID of the fuse to fetch the summary for."
+                  applianceID:"The ID of the appliance to fetch the summary for."
             },
             expected:{
-              content:'{success: "Fuse summary retrieved",summary:{SUMMARY OBJECT}}'
+              content:'{success: "appliance summary retrieved",summary:{SUMMARY OBJECT}}'
             },
             error:{
-              content:'{error: "Fuse not found"}'
+              content:'{error: "appliance not found"}'
             }
           }
       ]

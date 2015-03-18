@@ -78,6 +78,9 @@ module.exports = {
     });
   },
   login:function(email,password,callback){
+
+    console.log(email,password);
+
     this.User.findOne({email:email,password:password},function (err, user) {
       if (err){
         callback(-1);

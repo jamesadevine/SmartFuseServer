@@ -114,6 +114,11 @@ module.exports = {
 
     rule.minute = [0,15,30,45];
 
+    (function(self){
+      self.carbonScraper();
+      
+    })(this);
+
     schedule.scheduleJob(rule, (function(self){
       return function(){
         self.carbonScraper();
@@ -154,6 +159,10 @@ module.exports = {
             attrNameProcessors:[transformName]
           },
           function(err,result){
+            console.log("ERROR: ",err,result);
+
+            if(typeof result == 'undefined')
+              return;
 
             //get the latest and historic data  
             var latest = result.results.latest[0];
@@ -331,7 +340,7 @@ module.exports = {
         //check if the stats doesn't exist
         if(stats === null){
           //add a new stat if it doesn't exist!!
-          var newFuse = new EnergyStats({
+          var newStats = new EnergyStats({
             date:dateString,
             currentPrice:(values.currentPriceData)?values.currentPriceData:'',
             historicPrice:(values.historicPriceData)?values.historicPriceData:'',
@@ -341,8 +350,8 @@ module.exports = {
             historicGeneration:(values.historicGenerationStats)?values.historicGenerationStats:''
           });
 
-          //save the fuse to mongo!
-          newFuse.save(function (err, fuse) {
+          //save the stats to mongo!
+          newStats.save(function (err, stats) {
             if (err)
               callback(-1,null);
             else
@@ -413,6 +422,15 @@ module.exports = {
       }
     });
   },
+  getCurrentPrice: function(callback){
+    var targetDate = this.moment();
+    console.log(targetDate.format('DD-MM-YYYY'));
+    this.EnergyStats.find({date:targetDate.format('DD-MM-YYYY')},function (err,stats) {
+      console.log("STATS ",stats);
+        callback(true,stats.currentPrice);
+        return;
+    });
+  },
   getEnergyStats:function(countryCode){
     var energyStats={
       uk:{
@@ -442,63 +460,3 @@ function transformName(name){
   return name.toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
 }
 
-/*
-  carbonScraperWeb:function(object){
-    carbonValRegex = new RegExp(/[0-9]{2,5}/);
-    carbonUnitRegex = new RegExp(/[A-Za-z]*[0-9]*(\/)+[A-Za-z]*\/);
-    var parent = this;
-    this.request(this.carbonScraperURL, function(error, response, html){
-      // First we'll check to make sure no errors occurred when making the request
-      if(!error){
-        var $ = cheerio.load(html);
-        var found = $('big span');
-        var value = carbonValRegex.exec(found.text())[0];
-        var unit = carbonUnitRegex.exec(found.text())[0];
-        var color = found.css('color');
-        
-        var title = '';
-        var data = [];
-
-        var rows = $('tr').each(function(i,element){
-          var row = $(this).prev();
-          switch(i){
-            case 4:
-              title=row.text();
-              break;
-            case 5:
-              var children = row.children('th').each(function(x,element){
-                data.push({
-                  time:$(this).text()
-                });
-              });
-              break;
-            case 6:
-              var values = row.children('td').each(function(x,element){
-                data[x].value = $(this).text();
-              });
-              break;
-            default:
-              return;
-          }
-        });
-
-        var currentData = {
-          value:value,
-          unit:unit,
-          color:color
-        };
-
-        var historicData = {
-          title:title,
-          data:data
-        };
-
-        parent.updateEnergyStats({currentCarbonData:currentData,historicCarbonData:historicData},function(err,result){
-          if(!err)
-            console.log('Failed to save to mongo');
-          else
-            console.log('Data added');
-        });
-      }
-    });
-  },*/

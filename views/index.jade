@@ -4,8 +4,8 @@ block content
     div.content
       if user == null
         h1 Welcome
-        p Welcome to the Smart Fuse project. 
-        p Please <a href="/login">login</a> to see the smart fuse project API Details.
+        p Welcome to the Smart Monitoring project. 
+        p Please <a href="/login">login</a> to see the smart monitoring project API Details.
       else
         h1 Welcome #{user.name}
         p Quick Navigation:
@@ -26,7 +26,7 @@ block content
                     a(onClick='scrollTo("#{apiUser.id}")' href='#') #{apiUser.url} #{apiUser.type}
         div(class='row')
           div(class='col-md-12')
-            a(onClick='scrollTo("fuse")' href='#') Fuse APIs
+            a(onClick='scrollTo("fuse")' href='#') Appliance APIs
               each apiFuse in fuseContent 
                 div(class='row')
                   div(class='col-sm-11 col-sm-offset-1 ')

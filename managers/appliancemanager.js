@@ -16,7 +16,7 @@ module.exports = {
       description:String,
       ownerID:String,
       hubID:String,
-      data:[{ value: Number, date: String, time:String,samples:Number,sum:Number}],
+      data:[{ value: Number, date: String, time:String,price:Number,samples:Number,sum:Number}],
       online:Boolean,
       lastUpdated:Date
     });
@@ -57,7 +57,9 @@ module.exports = {
   },
   //creates a appliance if no record is found,
   //adds data to a appliance if a record is found!
-  addData:function (hubid,ownerid,applianceid,value,callback){
+  addData:function (hubid,ownerid,applianceid,currentprice,value,callback){
+
+    console.log("Current price",currentprice);
     var moment = this.moment();
 
     var timestamp = moment.format();
@@ -66,7 +68,7 @@ module.exports = {
     //get the nearest 10 minute, rounds down
     var remainder = (10 - moment.minute()) % 10;
     var nearestTen = moment.add(remainder,"minutes").format("HH:mm");
-    var appliance = this.Appliance;
+    var applianceMongo = this.Appliance;
     
     this.Appliance.findOne({ownerID:ownerid,id:applianceid,hubID:hubid},function (err,appliance) {
       if (err){
@@ -77,8 +79,8 @@ module.exports = {
         //check if the appliance doesn't exist
         if(appliance === null){
           //add a new appliance if it doesn't exist!!
-          var newappliance = new appliance({
-            name:'appliance '+applianceid,
+          var newappliance = new applianceMongo({
+            name:'Appliance '+applianceid,
             id:applianceid,
             description:"Change the appliance description to something more meaningful",
             icon:'img/appliances/help.png',
@@ -87,7 +89,7 @@ module.exports = {
             applianceID:applianceid,
             hubID:hubid,
             lastUpdated:timestamp,
-            data:[{value:value,date:dateString,time:nearestTen,samples:1,sum:value}]
+            data:[{value:value,date:dateString,time:nearestTen,price:currentprice,samples:1,sum:value}]
           });
 
           //save the appliance to mongo!
@@ -112,6 +114,7 @@ module.exports = {
               date:dateString,
               time:nearestTen,
               samples:1,
+              price:currentprice,
               sum:value
             };
             currentData.push(newDataPoint);
@@ -136,6 +139,8 @@ module.exports = {
   },
   //summarises the average for each appliance over a day
   getSummaryData:function(user,ownerid,date,callback){
+
+    console.log("USER",user);
 
     //the maximum number of appliances returned by the summary
     var MAX = 4;
@@ -175,7 +180,7 @@ module.exports = {
         var stats = energyManager.getEnergyStats(user.countryCode);
 
         //calculate a rough daily price to base info on.
-        var dailyPrice = Number(stats.price[user.houseSize])/30;
+        //var dailyPrice = Number(stats.price[user.houseSize])/30;
 
         //initialise empty arrays
         var names=[];
@@ -187,6 +192,8 @@ module.exports = {
         //loop through all data and calculate the data
         for(var i = 0;i<summaryData.length;i++){
 
+          var price = 0;
+
           var currentSummary = summaryData[i];
 
           //add to the list of names
@@ -196,6 +203,12 @@ module.exports = {
           var total = 0;
           for(var j = 0;j<currentSummary.data.length;j++){
             total+=currentSummary.data[j].value;
+            console.log(currentSummary.data[j].price);
+
+            if(typeof currentSummary.data[j].price == 'undefined' || currentSummary.data[j].price === null)
+              price+=stats.price[user.houseSize];
+            else
+              price += currentSummary.data[j].price;
           }
 
           //calculate the average energy consumption
@@ -204,8 +217,10 @@ module.exports = {
           //calculate the number of kwatts
           var kwatts = (Number(total/currentSummary.data.length) * 3)/1000;
 
+          console.log("counted price ",price," data length",currentSummary.data.length);
+
           //calculate the daily price for the current appliance
-          tempDatapoint2.push((dailyPrice*kwatts).toFixed(2));
+          tempDatapoint2.push(((price/currentSummary.data.length)*kwatts).toFixed(2));
 
           if(i==MAX)
             break;
@@ -240,6 +255,12 @@ module.exports = {
         callback(-1);
         return;
       }else{
+
+        if(appliance === null){
+          callback(-1);
+          return;
+        }
+
 
         //get past 7 days
         var targetDates = dateGenerator(7);

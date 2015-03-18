@@ -1,4 +1,4 @@
-module.exports = function(app,commonFunctions,applianceManager,io){
+module.exports = function(app,commonFunctions,applianceManager,energyManager,io){
 
   /*
     --------------------ADD appliance (DEPRECATED)----------------------
@@ -104,8 +104,12 @@ module.exports = function(app,commonFunctions,applianceManager,io){
         res.status(201).json({success:"appliance data added"});
       }
     };
-    applianceManager.addData(req.body.hubID,req.body.userID,req.body.applianceID,req.body.applianceVal,callback);
     
+    var callback2 = function(result,currentprice){
+      applianceManager.addData(req.body.hubID,req.body.userID,req.body.applianceID,currentprice,req.body.applianceVal,callback);
+    };
+
+    energyManager.getCurrentPrice(callback2);
   }),
 
   /*
