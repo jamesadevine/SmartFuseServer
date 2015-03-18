@@ -114,11 +114,6 @@ module.exports = {
 
     rule.minute = [0,15,30,45];
 
-    (function(self){
-      self.carbonScraper();
-      
-    })(this);
-
     schedule.scheduleJob(rule, (function(self){
       return function(){
         self.carbonScraper();
