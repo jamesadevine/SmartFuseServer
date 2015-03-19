@@ -9,6 +9,7 @@ module.exports = function(app,userManager,projectName){
     var callback = function(result){
 
       //render the api details if the user is logged in!
+      //pass the api details to the template
       res.render('index',{
         header:projectName+' Home',
         user:result,

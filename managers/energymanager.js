@@ -1,9 +1,10 @@
-
-var cheerio = require('cheerio');
+//import xml parser
 var xmlParser = require('xml2js').parseString;
 
+//import node scheduler
 var schedule = require('node-schedule');
 
+//a look up table for Colors and the textual name
 var generationLookup ={
   COAL:{
     color:"#000000",
@@ -62,10 +63,10 @@ var generationLookup ={
 module.exports = {
   init:function(mongoose,request,moment){
     this.mongoose = mongoose;
-    this.cheerio = cheerio;
     this.request = request;
     this.moment=moment;
 
+    //create energy stats schema
     this.EnergyStats = this.mongoose.model('EnergyStats',{
       date:String,
       currentPrice:{
@@ -104,16 +105,21 @@ module.exports = {
     });
     
     //this.EnergyStats.remove().exec();
-
+    //
+    
+    //set up external API URLs
     this.carbonScraperURL = 'http://www.earth.org.uk/_gridCarbonIntensityGB.xml';
     this.currentEnergyScraperURL = 'http://www.nordpoolspot.com/api/marketdata/page/1639';
     this.currentGenerationScraperURL = 'http://www.bmreports.com/bsp/additional/soapfunctions.php?element=generationbyfueltypetable';
     this.historicEnergyScraperURL = 'http://www.nordpoolspot.com/api/marketdata/page/4708';
 
+    //create a new schedule
     var rule = new schedule.RecurrenceRule();
 
+    //every 15 minutes!
     rule.minute = [0,15,30,45];
 
+    //schedule API calls.
     schedule.scheduleJob(rule, (function(self){
       return function(){
         self.carbonScraper();
@@ -135,11 +141,8 @@ module.exports = {
         self.generationScraper();
       };
     })(this));
-
-
-
-
   },
+  //processes the carbon api
   carbonScraper:function(){
     var parent = this;
     this.request(this.carbonScraperURL, function(error, response, html){
@@ -177,11 +180,14 @@ module.exports = {
               data:[]
             };
 
+            //build the historic data object
             for(var i = 0;i<historic.length;i++)
               historicData.data.push({time:historic[i].hour[0],value:historic[i].carbonintensity[0]});
 
+            //reverse for chronological order
             historicData.data.reverse();
 
+            //update the stored energy stats
             parent.updateEnergyStats({currentCarbonData:currentData,historicCarbonData:historicData},function(err,result){
               if(!err)
                 console.log('Failed to save to mongo');
@@ -193,6 +199,8 @@ module.exports = {
       }
     });
   },
+
+  //fetches the current energy prices for the UK
   currentEnergyScraper:function(){
     var parent = this;
 
@@ -200,6 +208,7 @@ module.exports = {
         // First we'll check to make sure no errors occurred when making the request
         var data ={};
         if(!error){
+            //build 
             var jsonResponse = JSON.parse(html);
             var todaysPrices = jsonResponse.data.Rows[1].Columns;
             for(var i =0;i<todaysPrices.length; i++)
@@ -215,8 +224,8 @@ module.exports = {
         
     });
   },
+  //fetches the historic energy prices for the UK
   historicEnergyScraper:function(){
-
     var parent = this;
 
     this.request(this.historicEnergyScraperURL, function(error, response, html){
@@ -225,10 +234,12 @@ module.exports = {
         if(!error){
             var jsonResponse = JSON.parse(html);
             var rows = jsonResponse.data.Rows;
+
+            //process the past 24 hours of prices
             for(var i=0;i<24;i++){
               
               var historicPriceColumns = rows[i].Columns;
-              //console.log('prices ',historicPriceColumns);
+
               for(var j =1;j<historicPriceColumns.length; j++){
                 if(!data[i])
                   data[i]=[];
@@ -239,7 +250,7 @@ module.exports = {
               }
                 
             }
-            
+            //update
             parent.updateEnergyStats({historicPriceData:data},function(err,result){
               if(!err)
                 console.log('Failed to save to mongo');
@@ -249,6 +260,7 @@ module.exports = {
         }
     });
   },
+  //gets the generation statistics for the UK
   generationScraper:function(){
     
     var parent = this;
@@ -257,16 +269,13 @@ module.exports = {
         // First we'll check to make sure no errors occurred when making the request
         var data ={};
         if(!error){
-          
+          //parse XML
           xmlParser(html,{
             trim:true,
             normalize:true,
             tagNameProcessors:[transformName],
             attrNameProcessors:[transformName]
           },function(err,result){
-
-            
-            
 
             var instantaneousVals = result.generationbyfueltypetable.inst[0];
 
@@ -292,9 +301,11 @@ module.exports = {
             var last24hrsVals = result.generationbyfueltypetable.last24h[0];
             var period = last24hrsVals.$.at;
             var historicTotal = last24hrsVals.$.total;
+
             //get data from the last 24hrs
             var historicGenerationData = {period:period,total:historicTotal,data:[]};
 
+            //process historic data
             for(var j=0;j<last24hrsVals.fuel.length;j++){
 
               var temp = generationLookup[last24hrsVals.fuel[j].$.type];
@@ -308,6 +319,7 @@ module.exports = {
               });
             }
 
+            //update database
             parent.updateEnergyStats({currentGenerationStats:currentGenerationStats,historicGenerationStats:historicGenerationData},function(err,result){
               if(!err)
                 console.log('Failed to save to mongo');
@@ -321,6 +333,7 @@ module.exports = {
         }
     });
   },
+  //update the energy statistics stored in MongoDB
   updateEnergyStats:function(values,callback){
     var moment = this.moment();
     var dateString = moment.format('DD-MM-YYYY');
@@ -334,7 +347,7 @@ module.exports = {
       }else{
         //check if the stats doesn't exist
         if(stats === null){
-          //add a new stat if it doesn't exist!!
+          //add a new stat object if it doesn't exist!!
           var newStats = new EnergyStats({
             date:dateString,
             currentPrice:(values.currentPriceData)?values.currentPriceData:'',
@@ -354,7 +367,7 @@ module.exports = {
           });
 
         }else{
-          //stats has been found, add the data
+          //process the values object, and check which of the stored values need updating
           if(values.currentPriceData)
             stats.currentPrice = values.currentPriceData;
 
@@ -373,8 +386,6 @@ module.exports = {
           if(values.historicGenerationStats)
             stats.historicGeneration = values.historicGenerationStats;
 
-
-
           //save the data to mongo!
           stats.save(function (err, stats) {
             console.log(err);
@@ -387,6 +398,7 @@ module.exports = {
       }
     });
   },
+  //retrieves the statistics stored in mongo
   getFullStats: function(date,callback,filter){
     var targetDate = this.moment(date,"DD-MM-YYYY");
     this.EnergyStats.find({date:targetDate.format('DD-MM-YYYY')},function (err,stats) {
@@ -400,12 +412,15 @@ module.exports = {
           return;
         }
 
+        //uses a filter to determine which api objects to return
+        //check for the current filter
         if(filter == 'current'){
           stats[0].historicPrice = undefined;
           stats[0].historicCarbon = undefined;
           stats[0].historicGeneration = undefined;
         }
 
+        //check for the historic filter
         if(filter == 'historic'){
           stats[0].currentCarbon = undefined;
           stats[0].currentGeneration = undefined;
@@ -417,13 +432,13 @@ module.exports = {
       }
     });
   },
+  //returns the current prices stored in MongoDB
   getCurrentPrice: function(callback){
     var targetDate = this.moment();
-    console.log(targetDate.format('DD-MM-YYYY'));
     this.EnergyStats.find({date:targetDate.format('DD-MM-YYYY')},function (err,stats) {
-      console.log("STATS ",stats);
-        callback(true,stats.currentPrice);
-        return;
+      //return price
+      callback(true,stats.currentPrice);
+      return;
     });
   },
   getEnergyStats:function(countryCode){
@@ -451,7 +466,7 @@ module.exports = {
   }
 };
 function transformName(name){
-  //filter out the crap that some api's return...
+  //filter out the rubbish that some api's return...
   return name.toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ");
 }
 

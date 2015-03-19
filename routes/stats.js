@@ -4,6 +4,7 @@ module.exports = function(app,commonFunctions,energyManager){
     --------------------GET STATS----------------------
   */
 
+  //retrieve all statistics
   app.get('/api/stats', function (req, res) {
 
     var required = ["date"];
@@ -27,6 +28,7 @@ module.exports = function(app,commonFunctions,energyManager){
     energyManager.getFullStats(req.query.date,callback);
   });
 
+  //retrieve current statistics only
   app.get('/api/stats/current', function (req, res) {
 
     var required = ["date"];
@@ -50,6 +52,7 @@ module.exports = function(app,commonFunctions,energyManager){
     energyManager.getFullStats(req.query.date,callback,'current');
   });
 
+  //retrieve historic statistics
   app.get('/api/stats/historic', function (req, res) {
 
     var required = ["date"];

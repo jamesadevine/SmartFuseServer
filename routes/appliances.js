@@ -18,13 +18,14 @@ module.exports = function(app,commonFunctions,applianceManager,userManager,hubMa
       var callback = function(appliances){
 
         var returnObject = {};
-        console.log(hubs);
-        console.log(appliances);
+
         for(var i=0;i<hubs.length;i++){
+          //combine the hubID into the appliances objects.
           var hubsappliances = appliances.filter(function(el){
             return el.hubID==hubs[i].id;
           });
-          console.log('hubsappliances',hubsappliances,hubs[i].name);
+
+          //uses the hubObject as a key
           returnObject[String(hubs[i].name)]=hubsappliances;
         }
 
